@@ -6,6 +6,12 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g., 10.2.105). Leave empty to read from config.yaml."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,12 +37,19 @@ jobs:
         id: information
         uses: frenck/action-addon-information@v1.4.2
 
-      - name: Determine version from release tag
+      - name: Determine version
         id: release
         run: |
-          version="${{ github.event.release.tag_name }}"
-          version="${version,,}"
-          version="${version#v}"
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            version="${{ github.event.release.tag_name }}"
+            version="${version,,}"
+            version="${version#v}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            version="${{ inputs.version }}"
+          else
+            version=$(yq --no-colors eval '.version' \
+              "${{ steps.information.outputs.target }}/config.yaml")
+          fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
   deploy:
