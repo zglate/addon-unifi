@@ -49,9 +49,10 @@ can pick this up without repeating the mistakes from the initial build.
 
 ## Versioning scheme
 
-- Use the UniFi version directly: `10.2.105`
-- If you need to rebuild the same UniFi version (Dockerfile fix, dependency
-  update, etc.), append a hyphenated build number: `10.2.105-1`, `10.2.105-2`
+- Date-based: `YYYYMMDD-NN` (e.g., `20260408-01`)
+- The date is when the build was made, NN is the build number for that day
+- This decouples the addon version from the UniFi version, which matters
+  when you need to downgrade UniFi but still have HA see it as an "update"
 - Only one release should exist at a time. Delete old ones after the new
   build is verified.
 
