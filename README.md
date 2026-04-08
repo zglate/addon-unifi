@@ -44,6 +44,10 @@ To migrate:
 9. Upload the `.unf` file
 10. Verify everything came over, then uninstall the old community addon
 
+**Note:** Remote Access (unifi.ui.com) and the UniFi mobile app may break
+after restoring to a new controller instance. You will likely need to
+disable and re-enable Remote Access, and re-authenticate your UI account.
+
 ## Credits
 
 All credit for the addon itself goes to [Franck Nijhof](https://github.com/frenck) and the [Home Assistant Community Add-ons](https://github.com/hassio-addons) team. This fork only changes the UniFi version and Java runtime.
