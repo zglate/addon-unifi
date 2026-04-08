@@ -1,9 +1,10 @@
 ---
-name: UniFi Network Application
-version: dev
+name: UniFi Network Application (Fast Track)
+version: "10.2.105-4"
 slug: unifi
 description: Manage your UniFi network using a web browser
-url: https://github.com/hassio-addons/addon-unifi
+url: https://github.com/zglate/addon-unifi
+image: "ghcr.io/zglate/unifi/{arch}"
 webui: https://[HOST]:[PORT:8443]
 startup: services
 arch:
