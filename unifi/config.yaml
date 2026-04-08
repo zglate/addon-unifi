@@ -1,6 +1,6 @@
 ---
 name: UniFi Network Application
-version: "10.2.105-1"
+version: "10.2.105-2"
 slug: unifi
 description: Manage your UniFi network using a web browser
 url: https://github.com/zglate/addon-unifi
