@@ -11,6 +11,62 @@ on:
       - synchronize
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  workflows:
-    uses: hassio-addons/workflows/.github/workflows/addon-ci.yaml@main
+  build-test:
+    name: Build test ${{ matrix.architecture }}
+    runs-on: ${{ matrix.architecture == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      matrix:
+        architecture:
+          - aarch64
+          - amd64
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Compose build flags
+        id: flags
+        run: |
+          from=$(yq --no-colors eval \
+            ".build_from.${{ matrix.architecture }}" \
+            "unifi/build.yaml")
+          echo "from=${from}" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        uses: docker/build-push-action@v7
+        with:
+          push: false
+          load: true
+          context: unifi
+          file: unifi/Dockerfile
+          tags: unifi-test:latest
+          build-args: |
+            BUILD_ARCH=${{ matrix.architecture }}
+            BUILD_DATE=test
+            BUILD_DESCRIPTION=test
+            BUILD_FROM=${{ steps.flags.outputs.from }}
+            BUILD_NAME=test
+            BUILD_REF=${{ github.sha }}
+            BUILD_REPOSITORY=${{ github.repository }}
+            BUILD_VERSION=test
+
+      - name: Smoke test
+        run: |
+          echo "Checking Java runtime..."
+          docker run --rm unifi-test:latest /usr/bin/java -version
+
+          echo "Checking UniFi jar..."
+          docker run --rm unifi-test:latest test -f /usr/lib/unifi/lib/ace.jar
+
+          echo "Checking MongoDB..."
+          docker run --rm unifi-test:latest mongod --version
