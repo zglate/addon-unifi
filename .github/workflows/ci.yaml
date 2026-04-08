@@ -11,6 +11,53 @@ on:
       - synchronize
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
-  workflows:
-    uses: hassio-addons/workflows/.github/workflows/addon-ci.yaml@main
+  build-test:
+    name: Build test ${{ matrix.architecture }}
+    runs-on: ${{ matrix.architecture == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    strategy:
+      matrix:
+        architecture:
+          - aarch64
+          - amd64
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compose build flags
+        id: flags
+        run: |
+          from=$(yq --no-colors eval \
+            ".build_from.${{ matrix.architecture }}" \
+            "unifi/build.yaml")
+          echo "from=${from}" >> "$GITHUB_OUTPUT"
+
+          if [[ "${{ matrix.architecture }}" = "amd64" ]]; then
+            echo "platform=linux/amd64" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ matrix.architecture }}" = "aarch64" ]]; then
+            echo "platform=linux/arm64/v8" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          context: unifi
+          file: unifi/Dockerfile
+          platforms: ${{ steps.flags.outputs.platform }}
+          build-args: |
+            BUILD_ARCH=${{ matrix.architecture }}
+            BUILD_DATE=test
+            BUILD_DESCRIPTION=test
+            BUILD_FROM=${{ steps.flags.outputs.from }}
+            BUILD_NAME=test
+            BUILD_REF=${{ github.sha }}
+            BUILD_REPOSITORY=${{ github.repository }}
+            BUILD_VERSION=test
