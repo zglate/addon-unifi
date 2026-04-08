@@ -14,8 +14,8 @@ RUN \
         gpg \
     \
     && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
-        | gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg \
-    && echo "deb https://packages.adoptium.net/artifactory/deb focal main" \
+        | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb focal main" \
         > /etc/apt/sources.list.d/adoptium.list \
     && apt-get update \
     \
@@ -30,6 +30,7 @@ RUN \
         "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
     \
     && dpkg --install /tmp/unifi.deb \
+    && apt-get -f install -y \
     && apt-get clean \
     && rm -fr \
         /tmp/* \
