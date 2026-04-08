@@ -95,6 +95,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ needs.information.outputs.slug }}/${{ matrix.architecture }}:${{ needs.information.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/${{ needs.information.outputs.slug }}/${{ matrix.architecture }}:latest
