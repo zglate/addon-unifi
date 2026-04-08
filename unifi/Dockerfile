@@ -6,7 +6,7 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Setup base system
-# UniFi 10.2.x requires Java 25 — not in Ubuntu repos, use Eclipse Temurin
+# UniFi 10.1+ requires Java 25 — not in Ubuntu repos, use Eclipse Temurin
 RUN \
     apt-get update \
     && apt-get upgrade -y \
@@ -27,7 +27,7 @@ RUN \
         temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
-        "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
+        "https://dl.ui.com/unifi/10.1.89/unifi_sysvinit_all.deb" \
     \
     && dpkg --install /tmp/unifi.deb \
     && apt-get -f install -y \

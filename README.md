@@ -11,13 +11,20 @@ The upstream maintainer does excellent work and I appreciate everything he has b
 ## What's different
 
 - Tracks the latest GA (stable) UniFi Network Application releases
-- Java 25 via Eclipse Temurin (required by UniFi 10.2.x)
+- Java 25 via Eclipse Temurin (required by UniFi 10.1+)
 - Self-contained CI/CD, no dependency on community shared workflows
 - That's it. Everything else is the upstream addon.
 
 ## Current version
 
-**UniFi Network Application 10.2.105**
+**UniFi Network Application 10.1.89**
+
+## Known issues with UniFi versions
+
+**10.2.105**: Do not use. TURN/STUN failures (error 420), remote access broken,
+speed tests fail, cloud connectivity issues on self-hosted controllers. These
+are [known problems](https://community.ui.com/releases/UniFi-Network-Application-10-2-105/cf38dace-ce91-4e4a-8ab7-a1d2db30aa55)
+with the release itself, not the addon. Downgraded to 10.1.89 which is stable.
 
 ## Installation
 
