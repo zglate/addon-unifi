@@ -17,21 +17,38 @@ can pick this up without repeating the mistakes from the initial build.
    Java requirement (like the 10.2.x move to Java 25), the Dockerfile needs
    updating too. Check the upstream repo's open PRs for hints.
 
-3. **Edit exactly two files:**
+3. **Check if the WebRTC library changed.** Extract the new deb and compare:
+
+   ```bash
+   # On a machine with dpkg-deb (or inside a container):
+   dpkg-deb -x unifi_sysvinit_all.deb /tmp/extract
+   md5sum /tmp/extract/usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so
+   md5sum /tmp/extract/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so
+   ```
+
+   - If md5 matches (`aarch64: 27e786235fae4a052bc808c3c13dfc19`,
+     `x86_64: 28d3a1a1dcb6c728ccf3bd613a5888d3`): same library, our patch
+     in `rootfs/` still applies correctly.
+   - If md5 is different: Ubiquiti updated the library. Check if the TURN
+     DONT-FRAGMENT bug is fixed upstream. If not, re-apply the binary patch
+     for both architectures (see "Re-patching the WebRTC library" below).
+
+4. **Edit three files:**
    - `unifi/Dockerfile` - change the version in the download URL
    - `unifi/config.yaml` - change the `version` field
+   - `unifi/CHANGELOG.md` - add a new version entry at the top
 
-4. **Commit both in a single commit.** Message format: `UniFi <version>`
+5. **Commit both in a single commit.** Message format: `UniFi <version>`
 
-5. **Push to main.**
+6. **Push to main.**
 
-6. **Create a GitHub release** tagged `v<version>`:
+7. **Create a GitHub release** tagged `v<version>`:
 
    ```
    gh release create v<VERSION> --title "UniFi <VERSION>" --notes "<what changed>"
    ```
 
-7. **Trigger the deploy workflow:**
+8. **Trigger the deploy workflow:**
 
    ```
    gh workflow run deploy.yaml -f version=<VERSION>
@@ -40,16 +57,50 @@ can pick this up without repeating the mistakes from the initial build.
    The release event should trigger it automatically, but if it doesn't,
    the manual trigger is the backup.
 
-8. **Delete the previous release** once the new one is built and verified:
+9. **Delete the previous release** once the new one is built and verified:
 
    ```
    gh release delete v<OLD_VERSION> --yes
    git push origin --delete v<OLD_VERSION>
    ```
 
+## Re-patching the WebRTC library
+
+If Ubiquiti ships a new `libubnt_webrtc_jni.so`, the DONT-FRAGMENT patch
+may need to be re-applied with new offsets.
+
+**What to patch:** Two call sites where `AppendFieldEmpty(msg, 0x1A)` adds
+the DONT-FRAGMENT attribute to TURN Allocate requests.
+
+**How to find the call sites:**
+
+```bash
+# Inside a container with the new library installed:
+objdump -d /usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so \
+  | grep -B2 -A2 "AppendFieldEmpty" \
+  | grep -B2 "#0x1a"
+```
+
+You should see two sites, each with:
+```
+mov  w2, #0x1a       // 52800342
+bl   AppendFieldEmpty // 97fe????
+```
+
+**How to patch:** Replace both instructions (8 bytes each) with ARM64 NOPs:
+```
+d503201f d503201f
+```
+
+**Verification:** After patching, the TURN Allocate request should no longer
+contain attribute 0x001A. Use tcpdump inside the container to verify:
+```bash
+tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
+```
+
 ## Versioning scheme
 
-- Date-based: `YYYYMMDD-NN` (e.g., `20260408-01`)
+- Date-based: `YYYYMMDD-NN` (e.g., `20260409-03`)
 - The date is when the build was made, NN is the build number for that day
 - This decouples the addon version from the UniFi version, which matters
   when you need to downgrade UniFi but still have HA see it as an "update"
@@ -70,6 +121,8 @@ can pick this up without repeating the mistakes from the initial build.
 - **Don't use the shared workflows from hassio-addons/workflows.** They
   require a DISPATCH_TOKEN for the community repository which we don't have.
   Our CI/CD is self-contained.
+- **Don't replace the patched WebRTC library** without checking if the
+  DONT-FRAGMENT bug is fixed upstream first.
 
 ## Cleaning up stale GHCR images
 
@@ -105,6 +158,7 @@ Both workflows are self-contained. No external workflow dependencies.
 | MongoDB | `unifi/Dockerfile` | UniFi may require a newer version eventually |
 | `frenck/action-addon-information` | `deploy.yaml` | Third-party Action; pinned to v1.4.2 |
 | GitHub Actions runners | Both workflows | aarch64 builds use `ubuntu-24.04-arm` |
+| `libubnt_webrtc_jni.so` | `unifi/rootfs/` | Patched binary; verify md5 on UniFi updates |
 
 ## How HA discovers updates
 
