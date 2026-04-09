@@ -6,18 +6,28 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Setup base system
+# UniFi 10.1+ requires Java 25 — not in Ubuntu repos, use Eclipse Temurin
 RUN \
     apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        binutils=2.34-6ubuntu1.11 \
-        libcap2=1:2.32-1ubuntu0.2 \
-        logrotate=3.14.0-4ubuntu3 \
-        mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
-        openjdk-17-jre-headless=17* \
+        gpg \
+    \
+    && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
+        | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb focal main" \
+        > /etc/apt/sources.list.d/adoptium.list \
+    && apt-get update \
+    \
+    && apt-get install -y --no-install-recommends \
+        binutils \
+        libcap2 \
+        logrotate \
+        mongodb-server \
+        temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
-        "https://dl.ui.com/unifi/10.0.162/unifi_sysvinit_all.deb" \
+        "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
     \
     && dpkg --install /tmp/unifi.deb \
     && apt-get clean \
