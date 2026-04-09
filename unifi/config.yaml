@@ -1,11 +1,12 @@
 ---
 name: UniFi Network Application (Fast Track)
-version: "20260409-01"
+version: "20260409-02"
 slug: unifi
 description: Manage your UniFi network using a web browser
 url: https://github.com/zglate/addon-unifi
 image: "ghcr.io/zglate/unifi/{arch}"
 webui: https://[HOST]:[PORT:8443]
+stage: experimental
 startup: services
 arch:
   - aarch64
