@@ -48,3 +48,13 @@ if ! bashio::fs.file_exists "/data/keystore_reset"; then
     touch /data/keystore_reset
     bashio::exit.ok
 fi
+
+# Suppress the "Upgrade to UniFi OS Server" nag — irrelevant on HA addons.
+# The modal in 10.2.105 has a bug: it reads async storage (Promise) synchronously,
+# so the dismiss state never resolves and the modal always shows.
+# Fix: patch the initial state from !s (always true) to !1 (always false).
+SWAI_JS=$(find /usr/lib/unifi/webapps/ROOT/app-unifi/react/js -name 'swai.*.js' 2>/dev/null | head -1)
+if [ -n "${SWAI_JS}" ] && grep -q 'useState)(!s)' "${SWAI_JS}"; then
+    sed -i 's/useState)(!s)/useState)(!1)/g' "${SWAI_JS}" 2>/dev/null \
+        || bashio::log.warning "Could not patch UOS upgrade nag"
+fi
