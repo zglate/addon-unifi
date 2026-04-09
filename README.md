@@ -13,18 +13,24 @@ The upstream maintainer does excellent work and I appreciate everything he has b
 - Tracks the latest GA (stable) UniFi Network Application releases
 - Java 25 via Eclipse Temurin (required by UniFi 10.1+)
 - Self-contained CI/CD, no dependency on community shared workflows
+- Patched WebRTC library to fix remote access (see below)
+- Suppresses the "Upgrade to UniFi OS Server" nag (irrelevant on HA)
 - That's it. Everything else is the upstream addon.
 
 ## Current version
 
-**UniFi Network Application 10.1.89**
+**UniFi Network Application 10.2.105**
 
-## Known issues with UniFi versions
+## Remote access fix
 
-**10.2.105**: Do not use. TURN/STUN failures (error 420), remote access broken,
-speed tests fail, cloud connectivity issues on self-hosted controllers. These
-are [known problems](https://community.ui.com/releases/UniFi-Network-Application-10-2-105/cf38dace-ce91-4e4a-8ab7-a1d2db30aa55)
-with the release itself, not the addon. Downgraded to 10.1.89 which is stable.
+The bundled EvoStream WebRTC library sends a DONT-FRAGMENT attribute in TURN
+Allocate requests. Cloudflare's TURN relay (used by Ubiquiti for cloud access)
+rejects this attribute, breaking remote access via unifi.ui.com for all
+self-hosted controllers.
+
+This fork includes a binary patch that removes the DONT-FRAGMENT attribute,
+restoring remote access. This affects the upstream community addon and all
+other self-hosted Docker-based UniFi deployments.
 
 ## Installation
 
@@ -51,13 +57,12 @@ To migrate:
 9. Upload the `.unf` file
 10. Verify everything came over, then uninstall the old community addon
 
-**Note:** Remote Access (unifi.ui.com) and the UniFi mobile app may break
-after restoring to a new controller instance. You will likely need to
-disable and re-enable Remote Access, and re-authenticate your UI account.
+**Note:** After migrating, you will need to re-enable Remote Access and
+re-authenticate your UI account in the UniFi settings.
 
 ## Credits
 
-All credit for the addon itself goes to [Franck Nijhof](https://github.com/frenck) and the [Home Assistant Community Add-ons](https://github.com/hassio-addons) team. This fork only changes the UniFi version and Java runtime.
+All credit for the addon itself goes to [Franck Nijhof](https://github.com/frenck) and the [Home Assistant Community Add-ons](https://github.com/hassio-addons) team. This fork only changes the UniFi version, Java runtime, and WebRTC library patch.
 
 ## License
 

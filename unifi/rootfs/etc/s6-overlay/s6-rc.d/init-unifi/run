@@ -48,3 +48,13 @@ if ! bashio::fs.file_exists "/data/keystore_reset"; then
     touch /data/keystore_reset
     bashio::exit.ok
 fi
+
+# Suppress the "Upgrade to UniFi OS Server" nag — irrelevant on HA addons.
+# The modal uses browser localStorage with key "networkServerUpgradeModalDismissed-{siteId}".
+# We inject a script that dismisses it for all sites on page load.
+readonly INDEX="/usr/lib/unifi/webapps/ROOT/app-unifi/index.html"
+readonly NAG_SCRIPT='<script>try{var o=localStorage;var orig=o.getItem.bind(o);o.getItem=function(k){if(k.indexOf("networkServerUpgradeModalDismissed")===0)return"0";return orig(k)};}catch(e){}</script>'
+if [ -f "${INDEX}" ] && ! grep -q "networkServerUpgradeModalDismissed" "${INDEX}"; then
+    sed -i "s|</head>|${NAG_SCRIPT}</head>|" "${INDEX}" 2>/dev/null \
+        || bashio::log.warning "Could not patch UOS upgrade nag"
+fi
