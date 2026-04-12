@@ -30,6 +30,23 @@ RUN \
         "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
     \
     && dpkg --install /tmp/unifi.deb \
+    \
+    # Patch libubnt_webrtc_jni.so: strip the DONT-FRAGMENT (0x001A) attribute from
+    # TURN Allocate requests. Cloudflare's TURN relay rejects it with error 420
+    # (Unknown Attribute), breaking remote access via unifi.ui.com on all
+    # self-hosted controllers. The _all deb ships both arch libs, so we can patch
+    # both here regardless of build architecture.
+    # Expected MD5s are for the unmodified originals — build fails loudly if
+    # Ubiquiti ships a new library so offsets can be re-derived before proceeding.
+    && AARCH64_LIB="/usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so" \
+    && X86_64_LIB="/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so" \
+    && echo "27e786235fae4a052bc808c3c13dfc19  ${AARCH64_LIB}" | md5sum --check \
+    && echo "657963ca47b185baf4eef8d90b70755b  ${X86_64_LIB}" | md5sum --check \
+    && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167214)) count=4 conv=notrunc 2>/dev/null \
+    && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167D20)) count=4 conv=notrunc 2>/dev/null \
+    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x114D1F)) count=1 conv=notrunc 2>/dev/null \
+    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x11583D)) count=1 conv=notrunc 2>/dev/null \
+    \
     && apt-get clean \
     && rm -fr \
         /tmp/* \
