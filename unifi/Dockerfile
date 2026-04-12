@@ -24,7 +24,7 @@ RUN \
         libcap2=1:2.32-1ubuntu0.2 \
         logrotate=3.14.0-4ubuntu3 \
         mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
-        temurin-25-jre=25.0.2.0.0+10-1 \
+        temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
         "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
