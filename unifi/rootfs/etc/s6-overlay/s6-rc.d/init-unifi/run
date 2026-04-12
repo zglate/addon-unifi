@@ -49,7 +49,7 @@ if ! bashio::fs.file_exists "/data/keystore_reset"; then
     bashio::exit.ok
 fi
 
-# Suppress the "Upgrade to UniFi OS Server" nag — irrelevant on HA addons.
+# Suppress the "Upgrade to UniFi OS Server" nag — irrelevant on HA apps.
 # The modal in 10.2.105 has a bug: it reads async storage (Promise) synchronously,
 # so the dismiss state never resolves and the modal always shows.
 # Fix: patch the initial state from !s (always true) to !1 (always false).
