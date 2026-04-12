@@ -24,6 +24,11 @@ RUN \
         libcap2=1:2.32-1ubuntu0.2 \
         logrotate=3.14.0-4ubuntu3 \
         mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
+    \
+    # Adoptium uses different build suffixes per architecture (e.g. +10-1 on amd64
+    # vs +10-0 on arm64), making a single pinned version string impossible.
+    # hadolint ignore=DL3008
+    && apt-get install -y --no-install-recommends \
         temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
