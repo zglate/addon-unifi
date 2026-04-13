@@ -6,7 +6,7 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Setup base system
-# UniFi 10.1+ requires Java 25 — not in Ubuntu repos, use Eclipse Temurin.
+# UniFi 10.1+ requires Java 25, not in Ubuntu repos, use Eclipse Temurin.
 # Temurin is not version-pinned: Adoptium uses different build suffixes per
 # architecture (e.g. +10-1 on amd64 vs +10-0 on arm64), making a single
 # pinned version string impossible across all supported architectures.
@@ -42,16 +42,30 @@ RUN \
     # (Unknown Attribute), breaking remote access via unifi.ui.com on all
     # self-hosted controllers. The _all deb ships both arch libs, so we can patch
     # both here regardless of build architecture.
-    # Expected MD5s are for the unmodified originals — build fails loudly if
-    # Ubiquiti ships a new library so offsets can be re-derived before proceeding.
+    # Expected MD5s are for the unmodified originals so the build fails loudly
+    # if Ubiquiti ships a new library and offsets need re-derivation.
     && AARCH64_LIB="/usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so" \
     && X86_64_LIB="/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so" \
     && echo "27e786235fae4a052bc808c3c13dfc19  ${AARCH64_LIB}" | md5sum --check \
     && echo "657963ca47b185baf4eef8d90b70755b  ${X86_64_LIB}" | md5sum --check \
+    # Sanity-check target bytes before patching. Each offset must point to the
+    # opcode byte of a "mov type, #0x1a" instruction that precedes AppendFieldEmpty.
+    # aarch64: full 4-byte instruction 0x52800342 (mov w2, #0x1a), little-endian
+    # x86_64:  first byte 0xba (mov edx, imm32 opcode) followed by 1a 00 00 00
+    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167214)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "42038052" \
+    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167D20)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "42038052" \
+    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x114CB9)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "ba1a000000" \
+    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x1157D7)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "ba1a000000" \
+    # Apply the patches
     && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167214)) count=4 conv=notrunc 2>/dev/null \
     && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167D20)) count=4 conv=notrunc 2>/dev/null \
-    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x114D1F)) count=1 conv=notrunc 2>/dev/null \
-    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x11583D)) count=1 conv=notrunc 2>/dev/null \
+    && printf '\x90\x90\x90\x90\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x114CB9)) count=5 conv=notrunc 2>/dev/null \
+    && printf '\x90\x90\x90\x90\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x1157D7)) count=5 conv=notrunc 2>/dev/null \
+    # Verify the patches actually landed. Fails the build if dd silently failed.
+    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167214)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "1f2003d5" \
+    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167D20)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "1f2003d5" \
+    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x114CB9)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "9090909090" \
+    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x1157D7)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "9090909090" \
     \
     && apt-get clean \
     && rm -fr \
