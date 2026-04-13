@@ -20,7 +20,7 @@ can pick this up without repeating the mistakes from the initial build.
 3. **Check if the WebRTC library changed.** Extract the new deb and compare:
 
    The Dockerfile's `md5sum --check` will fail the build automatically if
-   Ubiquiti ships a new library — that's the canary. If the build fails
+   Ubiquiti ships a new library. That's the canary; if the build fails
    on the md5 check, the patch offsets need re-deriving (see "Re-patching
    the WebRTC library" below). Otherwise, no action needed.
 

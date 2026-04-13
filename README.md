@@ -1,68 +1,46 @@
 # UniFi Network Application - Fast Track Fork
 
-This is a personal fork of [hassio-addons/addon-unifi](https://github.com/hassio-addons/addon-unifi) that tracks the latest stable UniFi Network Application releases faster than the upstream community addon.
+A personal fork of [hassio-addons/addon-unifi](https://github.com/hassio-addons/addon-unifi) that tracks the latest stable UniFi Network Application releases faster than the upstream community addon.
 
-**Use at your own risk.** I am not a professional developer. If you want a battle-tested, community-supported addon, use the [official one](https://github.com/hassio-addons/addon-unifi).
+The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) originated here and were contributed upstream in [#631](https://github.com/hassio-addons/addon-unifi/pull/631), so the community addon now has them. The only difference today is release cadence: new UniFi GA versions get packaged here as soon as they're verified, without waiting for a PR cycle.
 
-## Why this exists
-
-The upstream maintainer does excellent work and I appreciate everything he has built. I know he is busy and has many projects to manage. This fork is simply my way of running the latest UniFi version without waiting on his timeline or adding to his PR backlog. No criticism intended. If others find it useful, great.
-
-## What's different
-
-- Tracks the latest GA (stable) UniFi Network Application releases
-- Java 25 via Eclipse Temurin (required by UniFi 10.1+)
-- Self-contained CI/CD, no dependency on community shared workflows
-- Patched WebRTC library to fix remote access (see below)
-- Suppresses the "Upgrade to UniFi OS Server" nag (irrelevant on HA)
-- That's it. Everything else is the upstream addon.
+**Use at your own risk.** I am not a professional developer. The community addon is the safer choice if you don't need the faster cadence.
 
 ## Current version
 
-**UniFi Network Application 10.2.105** — includes fixes for [CVE-2026-22557 (CVSS 10.0) and CVE-2026-22558 (CVSS 7.7)](https://community.ui.com/releases/Security-Advisory-Bulletin-062-062/c29719c0-405e-4d4a-8f26-e343e99f931b)
-
-## Remote access fix
-
-The bundled EvoStream WebRTC library sends a DONT-FRAGMENT attribute in TURN
-Allocate requests. Cloudflare's TURN relay (used by Ubiquiti for cloud access)
-rejects this attribute, breaking remote access via unifi.ui.com for all
-self-hosted controllers.
-
-This fork includes a binary patch that removes the DONT-FRAGMENT attribute,
-restoring remote access. This affects the upstream community addon and all
-other self-hosted Docker-based UniFi deployments.
+**UniFi Network Application 10.2.105**
 
 ## Installation
 
 1. In Home Assistant, go to **Settings > Add-ons > Add-on Store**
 2. Click the three-dot menu (top right) > **Repositories**
 3. Add: `https://github.com/zglate/addon-unifi`
-4. Refresh and install "UniFi Network Application"
+4. Refresh and install "UniFi Network Application (Fast Track)"
 
 ## Migrating from the community addon
 
-This fork uses a different repository URL, so Home Assistant treats it as a
-separate addon. Your existing UniFi data will not carry over automatically.
-To migrate:
+This fork uses a different repository URL, so Home Assistant treats it as a separate addon. Your existing UniFi data will not carry over automatically.
 
 1. **Create a full Home Assistant backup first** (Settings > System > Backups)
 2. Open the **old** UniFi addon's web UI
 3. Go to **Settings > System > Backups tab**
 4. Click **Download** next to "Download Current Config Backup"
-5. The default is "Settings Only". If you want to keep your client/traffic
-   statistics, change the dropdown to a time period (e.g., 365 days).
+5. The default is "Settings Only". If you want to keep your client/traffic statistics, change the dropdown to a time period (e.g., 365 days).
 6. Save the `.unf` file to your computer
 7. Open the **new** addon's web UI (this fork)
 8. On the setup wizard, choose **Restore from a previous backup**
 9. Upload the `.unf` file
 10. Verify everything came over, then uninstall the old community addon
 
-**Note:** After migrating, you will need to re-enable Remote Access and
-re-authenticate your UI account in the UniFi settings.
+**Note:** After migrating, you will need to re-enable Remote Access and re-authenticate your UI account in the UniFi settings.
+
+## End-of-life notice
+
+The standalone UniFi Network Application is approaching end-of-life. Ubiquiti is transitioning to UniFi OS Server, which does not translate to a Docker/Home Assistant addon. There is no upgrade path from this addon to UniFi OS Server. Plan accordingly.
 
 ## Credits
 
-All credit for the addon itself goes to [Franck Nijhof](https://github.com/frenck) and the [Home Assistant Community Add-ons](https://github.com/hassio-addons) team. This fork only changes the UniFi version, Java runtime, and WebRTC library patch.
+Built on [Franck Nijhof](https://github.com/frenck) and the [Home Assistant Community Add-ons](https://github.com/hassio-addons) team's work. All credit for the addon framework goes to them.
 
 ## License
 
