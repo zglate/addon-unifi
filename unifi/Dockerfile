@@ -6,12 +6,16 @@ FROM ${BUILD_FROM}
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Setup base system
-# UniFi 10.1+ requires Java 25 — not in Ubuntu repos, use Eclipse Temurin
+# UniFi 10.1+ requires Java 25 — not in Ubuntu repos, use Eclipse Temurin.
+# Temurin is not version-pinned: Adoptium uses different build suffixes per
+# architecture (e.g. +10-1 on amd64 vs +10-0 on arm64), making a single
+# pinned version string impossible across all supported architectures.
+# hadolint ignore=DL3008
 RUN \
     apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        gpg \
+        gpg=2.2.19-3ubuntu2.5 \
     \
     && curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public \
         | gpg --dearmor -o /usr/share/keyrings/adoptium.gpg \
@@ -20,17 +24,35 @@ RUN \
     && apt-get update \
     \
     && apt-get install -y --no-install-recommends \
-        binutils \
-        libcap2 \
-        logrotate \
-        mongodb-server \
+        binutils=2.34-6ubuntu1.11 \
+        libcap2=1:2.32-1ubuntu0.2 \
+        logrotate=3.14.0-4ubuntu3 \
+        mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
+    \
+    && apt-get install -y --no-install-recommends \
         temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
         "https://dl.ui.com/unifi/10.2.105/unifi_sysvinit_all.deb" \
     \
     && dpkg --install /tmp/unifi.deb \
-    && apt-get -f install -y \
+    \
+    # Patch libubnt_webrtc_jni.so: strip the DONT-FRAGMENT (0x001A) attribute from
+    # TURN Allocate requests. Cloudflare's TURN relay rejects it with error 420
+    # (Unknown Attribute), breaking remote access via unifi.ui.com on all
+    # self-hosted controllers. The _all deb ships both arch libs, so we can patch
+    # both here regardless of build architecture.
+    # Expected MD5s are for the unmodified originals — build fails loudly if
+    # Ubiquiti ships a new library so offsets can be re-derived before proceeding.
+    && AARCH64_LIB="/usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so" \
+    && X86_64_LIB="/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so" \
+    && echo "27e786235fae4a052bc808c3c13dfc19  ${AARCH64_LIB}" | md5sum --check \
+    && echo "657963ca47b185baf4eef8d90b70755b  ${X86_64_LIB}" | md5sum --check \
+    && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167214)) count=4 conv=notrunc 2>/dev/null \
+    && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167D20)) count=4 conv=notrunc 2>/dev/null \
+    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x114D1F)) count=1 conv=notrunc 2>/dev/null \
+    && printf '\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x11583D)) count=1 conv=notrunc 2>/dev/null \
+    \
     && apt-get clean \
     && rm -fr \
         /tmp/* \

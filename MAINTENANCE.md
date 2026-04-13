@@ -19,19 +19,10 @@ can pick this up without repeating the mistakes from the initial build.
 
 3. **Check if the WebRTC library changed.** Extract the new deb and compare:
 
-   ```bash
-   # On a machine with dpkg-deb (or inside a container):
-   dpkg-deb -x unifi_sysvinit_all.deb /tmp/extract
-   md5sum /tmp/extract/usr/lib/unifi/lib/native/Linux/aarch64/libubnt_webrtc_jni.so
-   md5sum /tmp/extract/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so
-   ```
-
-   - If md5 matches (`aarch64: 27e786235fae4a052bc808c3c13dfc19`,
-     `x86_64: 28d3a1a1dcb6c728ccf3bd613a5888d3`): same library, our patch
-     in `rootfs/` still applies correctly.
-   - If md5 is different: Ubiquiti updated the library. Check if the TURN
-     DONT-FRAGMENT bug is fixed upstream. If not, re-apply the binary patch
-     for both architectures (see "Re-patching the WebRTC library" below).
+   The Dockerfile's `md5sum --check` will fail the build automatically if
+   Ubiquiti ships a new library — that's the canary. If the build fails
+   on the md5 check, the patch offsets need re-deriving (see "Re-patching
+   the WebRTC library" below). Otherwise, no action needed.
 
 4. **Edit three files:**
    - `unifi/Dockerfile` - change the version in the download URL
