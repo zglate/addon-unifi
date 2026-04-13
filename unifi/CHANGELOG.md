@@ -1,5 +1,15 @@
 # Changelog
 
+## 20260413-01
+
+Adopted upstream improvements from [hassio-addons/addon-unifi#631](https://github.com/hassio-addons/addon-unifi/pull/631).
+
+- Patch WebRTC library at build time instead of committing pre-patched binaries
+- Verify unmodified library md5 during build — build fails if Ubiquiti updates the library
+- Corrected x86_64 md5 (previous committed binary had a corruption bug)
+- Restored apt version pins for reproducibility
+- Refactored Java 25 install to comply with hadolint DL3008
+
 ## 20260409-06
 
 Initial public release.
