@@ -48,24 +48,35 @@ RUN \
     && X86_64_LIB="/usr/lib/unifi/lib/native/Linux/x86_64/libubnt_webrtc_jni.so" \
     && echo "27e786235fae4a052bc808c3c13dfc19  ${AARCH64_LIB}" | md5sum --check \
     && echo "657963ca47b185baf4eef8d90b70755b  ${X86_64_LIB}" | md5sum --check \
+    # Helper: verify byte sequence at offset in library matches expected hex string.
+    # On mismatch, emit a descriptive failure message and exit non-zero.
+    && verify_bytes() { \
+        local lib="$1" off="$2" count="$3" expect="$4" label="$5"; \
+        local actual; \
+        actual="$(dd if="${lib}" bs=1 skip=$((off)) count="${count}" 2>/dev/null | od -An -tx1 | tr -d ' \n')"; \
+        if [ "${actual}" != "${expect}" ]; then \
+            echo "FAIL: ${label} at $(printf '0x%X' "${off}"): expected ${expect}, got ${actual}" >&2; \
+            return 1; \
+        fi; \
+    } \
     # Sanity-check target bytes before patching. Each offset must point to the
     # opcode for "mov type, #0x1a" that precedes AppendFieldEmpty.
     # aarch64: full 4-byte instruction 0x52800342 (mov w2, #0x1a), little-endian
     # x86_64:  5-byte instruction 0xba 0x1a 0x00 0x00 0x00 (mov edx, 0x1a)
-    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167214)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "42038052" \
-    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167D20)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "42038052" \
-    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x114CB9)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "ba1a000000" \
-    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x1157D7)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "ba1a000000" \
+    && verify_bytes "${AARCH64_LIB}" $((0x167214)) 4 "42038052" "aarch64 pre-patch site 1" \
+    && verify_bytes "${AARCH64_LIB}" $((0x167D20)) 4 "42038052" "aarch64 pre-patch site 2" \
+    && verify_bytes "${X86_64_LIB}"  $((0x114CB9)) 5 "ba1a000000" "x86_64 pre-patch site 1" \
+    && verify_bytes "${X86_64_LIB}"  $((0x1157D7)) 5 "ba1a000000" "x86_64 pre-patch site 2" \
     # Apply the patches
     && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167214)) count=4 conv=notrunc 2>/dev/null \
     && printf '\x1f\x20\x03\xd5' | dd of="${AARCH64_LIB}" bs=1 seek=$((0x167D20)) count=4 conv=notrunc 2>/dev/null \
     && printf '\x90\x90\x90\x90\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x114CB9)) count=5 conv=notrunc 2>/dev/null \
     && printf '\x90\x90\x90\x90\x90' | dd of="${X86_64_LIB}" bs=1 seek=$((0x1157D7)) count=5 conv=notrunc 2>/dev/null \
     # Verify patches actually landed
-    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167214)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "1f2003d5" \
-    && test "$(dd if=${AARCH64_LIB} bs=1 skip=$((0x167D20)) count=4 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "1f2003d5" \
-    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x114CB9)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "9090909090" \
-    && test "$(dd if=${X86_64_LIB} bs=1 skip=$((0x1157D7)) count=5 2>/dev/null | od -An -tx1 | tr -d ' \n')" = "9090909090" \
+    && verify_bytes "${AARCH64_LIB}" $((0x167214)) 4 "1f2003d5" "aarch64 post-patch site 1" \
+    && verify_bytes "${AARCH64_LIB}" $((0x167D20)) 4 "1f2003d5" "aarch64 post-patch site 2" \
+    && verify_bytes "${X86_64_LIB}"  $((0x114CB9)) 5 "9090909090" "x86_64 post-patch site 1" \
+    && verify_bytes "${X86_64_LIB}"  $((0x1157D7)) 5 "9090909090" "x86_64 post-patch site 2" \
     \
     && apt-get clean \
     && rm -fr \
