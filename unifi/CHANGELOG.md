@@ -1,5 +1,10 @@
 # Changelog
 
+## 20260413-03
+
+- Add descriptive failure messages to byte verification (from reviewer suggestion on upstream PR)
+- Each pre/post-patch check now reports which arch, site, and offset failed
+
 ## 20260413-02
 
 Fix x86_64 crash (SIGILL) reported upstream in [hassio-addons/addon-unifi#635](https://github.com/hassio-addons/addon-unifi/issues/635).
