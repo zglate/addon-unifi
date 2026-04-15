@@ -62,11 +62,14 @@ jobs:
 
       - name: Smoke test
         run: |
+          # The base image uses s6-overlay as its entrypoint, which ignores
+          # CMD args and runs the full addon. Override --entrypoint so the
+          # commands we're testing actually execute.
           echo "Checking Java runtime..."
-          docker run --rm unifi-test:latest /usr/bin/java -version
+          docker run --rm --entrypoint /usr/bin/java unifi-test:latest -version
 
           echo "Checking UniFi jar..."
-          docker run --rm unifi-test:latest test -f /usr/lib/unifi/lib/ace.jar
+          docker run --rm --entrypoint test unifi-test:latest -f /usr/lib/unifi/lib/ace.jar
 
           echo "Checking MongoDB..."
-          docker run --rm unifi-test:latest mongod --version
+          docker run --rm --entrypoint mongod unifi-test:latest --version
