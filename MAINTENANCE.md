@@ -149,7 +149,7 @@ Both workflows are self-contained. No external workflow dependencies.
 | MongoDB | `unifi/Dockerfile` | UniFi may require a newer version eventually |
 | `frenck/action-addon-information` | `deploy.yaml` | Third-party Action; pinned to v1.4.2 |
 | GitHub Actions runners | Both workflows | aarch64 builds use `ubuntu-24.04-arm` |
-| `libubnt_webrtc_jni.so` | `unifi/rootfs/` | Patched binary; verify md5 on UniFi updates |
+| `libubnt_webrtc_jni.so` | Patched in `unifi/Dockerfile` at build time | md5 check fails the build if Ubiquiti ships a new library |
 
 ## How HA discovers updates
 
