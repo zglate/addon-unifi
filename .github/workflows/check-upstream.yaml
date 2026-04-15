@@ -2,7 +2,7 @@ name: Check for new UniFi releases
 
 on:
   schedule:
-    - cron: '0 12 * * *'  # daily at 12:00 UTC
+    - cron: '0 20 * * *'  # daily at 12:00 PT (20:00 UTC, past Ubiquiti's release window)
   workflow_dispatch:
 
 permissions:
