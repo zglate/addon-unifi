@@ -26,8 +26,10 @@ jobs:
         id: latest
         run: |
           FEED_URL="https://community.ui.com/rss/releases/UniFi-Network-Controller/e6712595-81bb-4829-8e42-9e2630fabcfe"
-          LATEST=$(curl -sL "${FEED_URL}" \
-            | grep -oP '<title>\s*UniFi Network Application \K[0-9]+\.[0-9]+\.[0-9]+' \
+          # Ubiquiti's server rejects curl's default UA, so spoof a browser UA.
+          # Titles are wrapped in <![CDATA[...]]>, so match inside that.
+          LATEST=$(curl -sL -A "Mozilla/5.0" "${FEED_URL}" \
+            | grep -oP 'UniFi Network Application \K[0-9]+\.[0-9]+\.[0-9]+' \
             | head -1)
           if [ -z "${LATEST}" ]; then
             echo "Failed to parse RSS feed" >&2
