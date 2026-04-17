@@ -1,5 +1,10 @@
 # Changelog
 
+## 20260417-01
+
+- Upgrade to UniFi Network Application 10.3.55
+- WebRTC library unchanged, TURN patch applies cleanly
+
 ## 20260413-03
 
 - Add descriptive failure messages to byte verification (from reviewer suggestion on upstream PR)
