@@ -8,7 +8,7 @@ The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) or
 
 ## Current version
 
-**UniFi Network Application 10.2.105**
+**UniFi Network Application 10.3.55**
 
 ## Installation
 
