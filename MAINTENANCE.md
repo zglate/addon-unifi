@@ -39,14 +39,17 @@ can pick this up without repeating the mistakes from the initial build.
    gh release create v<VERSION> --title "UniFi <VERSION>" --notes "<what changed>"
    ```
 
-8. **Trigger the deploy workflow:**
+8. **Wait for the release event to trigger the deploy workflow.**
 
-   ```
-   gh workflow run deploy.yaml -f version=<VERSION>
-   ```
+   `gh release create` publishes the release, which fires the
+   `release: published` event that auto-triggers `deploy.yaml`. Confirm
+   with `gh run list --workflow=deploy.yaml --limit 1`.
 
-   The release event should trigger it automatically, but if it doesn't,
-   the manual trigger is the backup.
+   Do NOT also run `gh workflow run deploy.yaml -f version=<VERSION>`.
+   That fires a second simultaneous deploy and the two builds race to
+   push the same image tag, which can leave GHCR with a missing
+   manifest (HA update then fails with HTTP 404). Only use the manual
+   dispatch as a recovery if the release event genuinely didn't fire.
 
 9. **Delete the previous release** once the new one is built and verified:
 
