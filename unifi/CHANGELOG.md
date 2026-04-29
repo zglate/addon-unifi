@@ -1,5 +1,10 @@
 # Changelog
 
+## 20260428-01
+
+- Upgrade to UniFi Network Application 10.3.58
+- WebRTC library unchanged, TURN patch applies cleanly
+
 ## 20260417-01
 
 - Upgrade to UniFi Network Application 10.3.55
