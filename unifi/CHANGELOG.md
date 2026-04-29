@@ -2,27 +2,47 @@
 
 ## 20260428-01
 
-- Upgrade to UniFi Network Application 10.3.58
-- WebRTC library unchanged, TURN patch applies cleanly
+UniFi Network Application 10.3.58 includes the improvements and bugfixes below.
+
+_1 improvement and 6 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-3-58/449387c9-4187-44bd-ad47-02da91688dfc)
+
+WebRTC library unchanged, TURN patch applies cleanly.
 
 ## 20260417-01
 
-- Upgrade to UniFi Network Application 10.3.55
-- WebRTC library unchanged, TURN patch applies cleanly
+UniFi Network Application 10.3.55 adds Identity Firewall, Improves Device Monitoring, and includes additional improvements and bugfixes.
+
+**Identity Firewall**
+
+Create firewall rules using Identity Roles or individual users to enforce user-based access control independent of IP addresses. Enables consistent policy across devices and simplifies access management as users move between networks.
+
+_Requires UniFi OS 5.1 or newer._
+
+**Client Devices in Infrastructure Topology & Device Supervisor**
+
+Added client device support in Infrastructure Topology and enhanced monitoring for non-UniFi devices (e.g., servers, sensors). Device Supervisor can automatically restart unreachable devices and improves visibility in Topology and Digital Twin.
+
+_22 improvements and 11 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-3-55/3ed8145b-94a2-44b2-a42e-2d970f135b7b)
+
+WebRTC library unchanged, TURN patch applies cleanly.
 
 ## 20260413-03
 
-- Add descriptive failure messages to byte verification (from reviewer suggestion on upstream PR)
+- Added descriptive failure messages to byte verification (from reviewer suggestion on upstream PR)
 - Each pre/post-patch check now reports which arch, site, and offset failed
 
 ## 20260413-02
 
-Fix x86_64 crash (SIGILL) reported upstream in [hassio-addons/addon-unifi#635](https://github.com/hassio-addons/addon-unifi/issues/635).
+Fixed x86_64 crash (SIGILL) reported upstream in [hassio-addons/addon-unifi#635](https://github.com/hassio-addons/addon-unifi/issues/635).
 
-- Correct x86_64 TURN patch offsets (were 102 bytes off due to an extraction bug in the original analysis)
+- Corrected x86_64 TURN patch offsets (were 102 bytes off due to an extraction bug in the original analysis)
 - Apply full 5-byte NOP on x86_64 instead of 1-byte (required for variable-length x86 instructions)
-- Add pre-patch byte verification: confirms we're patching `ba 1a 00 00 00` (mov edx, 0x1a) at the target offsets
-- Add post-patch byte verification: confirms NOPs actually landed
+- Added pre-patch byte verification: confirms we're patching `ba 1a 00 00 00` (mov edx, 0x1a) at the target offsets
+- Added post-patch byte verification: confirms NOPs actually landed
 
 ### Why it happened
 
@@ -44,7 +64,26 @@ Adopted upstream improvements from [hassio-addons/addon-unifi#631](https://githu
 
 Initial public release.
 
-- UniFi Network Application 10.2.105
+UniFi Network Application 10.2.105 adds Port Manager Time Machine, improves the Topology, adds Device Supervisor, and includes additional improvements and bugfixes.
+
+**Port Manager Time Machine**
+
+Review the latest 24hr port activity to verify historical device connectivity and analyze anomalies for faster troubleshooting.
+
+**Infrastructure Topology & Digital Twin**
+
+Introduces a topology view focused on core infrastructure, providing clear visibility into key inter-switch and device bridge links. Includes a rack-level and customizable Digital Twin for physical-to-logical mapping and improved operational awareness.
+
+**Device Supervisor**
+
+Monitors UniFi device heartbeats and automatically power-cycles unresponsive devices via PoE switches or UniFi PDUs to restore connectivity with minimal downtime.
+
+_41 improvements and 13 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-2-105/cf38dace-ce91-4e4a-8ab7-a1d2db30aa55)
+
+Fork-specific changes:
+
 - Java 25 via Eclipse Temurin (required by UniFi 10.1+)
 - Fix remote access via unifi.ui.com (TURN DONT-FRAGMENT binary patch)
 - --enable-native-access for Java 25 native library compatibility
