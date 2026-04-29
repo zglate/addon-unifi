@@ -33,7 +33,17 @@ can pick this up without repeating the mistakes from the initial build.
 
 6. **Push to main.**
 
-7. **Create a GitHub release** tagged `v<version>`:
+7. **Generate the changelog entry** for `unifi/CHANGELOG.md` from upstream's release notes, then create a GitHub release tagged `v<version>`:
+
+   ```
+   python3 scripts/release_notes.py <UNIFI_VERSION>
+   ```
+
+   That prints a markdown summary (Overview features, counts of improvements/bugfixes, link to full notes). Paste it into `unifi/CHANGELOG.md` under a new `## <ADDON_VERSION>` heading and commit.
+
+   The same script runs in `check-upstream.yaml` and embeds the same summary in the GitHub issue you got notified with — copying from the issue is equivalent.
+
+   Then:
 
    ```
    gh release create v<VERSION> --title "UniFi <VERSION>" --notes "<what changed>"

@@ -48,12 +48,27 @@ jobs:
             exit 1
           fi
 
+      - name: Generate release-notes summary
+        if: steps.latest.outputs.version != steps.installed.outputs.version
+        id: notes
+        env:
+          LATEST: ${{ steps.latest.outputs.version }}
+        run: |
+          NOTES=$(python3 scripts/release_notes.py "${LATEST}" 2>&1 || echo "")
+          # Pass the full multi-line value through to the next step.
+          {
+            echo "summary<<EOF_NOTES"
+            echo "${NOTES}"
+            echo "EOF_NOTES"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Open issue if new version available
         if: steps.latest.outputs.version != steps.installed.outputs.version
         env:
           GH_TOKEN: ${{ github.token }}
           CURRENT: ${{ steps.installed.outputs.version }}
           LATEST: ${{ steps.latest.outputs.version }}
+          NOTES: ${{ steps.notes.outputs.summary }}
         run: |
           # Deduplicate: skip if an open issue for this version already exists
           EXISTING=$(gh issue list --state open --label new-upstream-version \
@@ -74,8 +89,13 @@ jobs:
 
           - **Installed:** ${CURRENT}
           - **Latest:** ${LATEST}
-          - **Release notes:** https://community.ui.com/releases/UniFi-Network-Application-${LATEST//./-}
           - **Download:** https://dl.ui.com/unifi/${LATEST}/unifi_sysvinit_all.deb
+
+          ---
+
+          ${NOTES}
+
+          ---
 
           Follow MAINTENANCE.md to build and deploy.
           EOF
