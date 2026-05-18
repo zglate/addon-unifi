@@ -10,8 +10,8 @@ faster than the upstream community addon which has a slow merge cadence.
 
 ## Current state
 
-- **UniFi version**: 10.2.105
-- **Addon version**: 20260413-03 (date-based versioning)
+- **UniFi version**: 10.4.57
+- **Addon version**: 20260518-01 (date-based versioning)
 - **Java**: 25 via Eclipse Temurin (required by UniFi 10.1+)
 - **Status**: Running in HA, remote access working
 - **HA architecture**: aarch64 (ARM)
@@ -49,6 +49,7 @@ The community addon now has functional parity with this fork. Main remaining dif
 - **Date-based versioning**: Decouples addon version from UniFi version. Allows downgrades to show as "updates" in HA.
 - **`provenance: false, sbom: false`** in deploy workflow: Without these, buildx pushes OCI index format that HA Supervisor can't pull.
 - **Self-contained CI/CD**: Does not use hassio-addons shared workflows (they require a DISPATCH_TOKEN we can't provide).
+- **Keep old releases as rollback targets**: Previous policy was "only one release at a time" — abandoned 2026-05-18. GitHub releases are free metadata; GHCR images are the load-bearing artifact and stay pullable. To roll back, revert `unifi/config.yaml` to a prior addon version and push. HA Supervisor sees the older addon version as newer (date-based) and pulls the still-existing image. See MAINTENANCE.md "Rolling back".
 
 ## TURN DONT-FRAGMENT patch (critical)
 
@@ -114,7 +115,9 @@ SSH key is authorized on the HA box (Advanced SSH & Web Terminal addon).
 
 ## What NOT to do
 
+- Don't delete previous GitHub releases just because they're old — they're rollback targets. Only delete releases that were created in error or had broken builds.
 - Don't delete untagged GHCR package versions (they're backing manifests, deleting breaks pulls)
+- Don't delete tagged GHCR images for successful releases — that destroys the rollback path
 - Don't use hassio-addons shared workflows (need DISPATCH_TOKEN)
 - Don't switch gh auth back to zglate without being asked
 - Don't trust upstream DOCS.md claims without verifying

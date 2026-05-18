@@ -61,12 +61,13 @@ can pick this up without repeating the mistakes from the initial build.
    manifest (HA update then fails with HTTP 404). Only use the manual
    dispatch as a recovery if the release event genuinely didn't fire.
 
-9. **Delete the previous release** once the new one is built and verified:
-
-   ```
-   gh release delete v<OLD_VERSION> --yes
-   git push origin --delete v<OLD_VERSION>
-   ```
+9. **Leave previous releases in place.** Each release is a rollback
+   target: the GHCR image for the previous tag is still pullable, so
+   reverting `unifi/config.yaml` to the previous addon version is a
+   one-commit rollback. GitHub releases are free metadata; HA
+   Supervisor ignores them (it reads `version` from `config.yaml`).
+   Only delete a release if it was created in error or the build was
+   broken — see "Cleaning up failed releases" below.
 
 ## Re-patching the WebRTC library
 
@@ -108,8 +109,20 @@ tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
 - The date is when the build was made, NN is the build number for that day
 - This decouples the addon version from the UniFi version, which matters
   when you need to downgrade UniFi but still have HA see it as an "update"
-- Only one release should exist at a time. Delete old ones after the new
-  build is verified.
+- Release tags use the UniFi version (`v10.4.57`), not the addon version.
+  This makes the release page readable as a UniFi version history.
+
+## Rolling back
+
+If a new UniFi version misbehaves, roll back by reverting
+`unifi/config.yaml` to the previous addon version and pushing. HA
+Supervisor will see the older version as an "update" (because the
+addon version is date-based and the new one is newer) and pull the
+still-existing GHCR image. No need to rebuild — the previous image is
+intact at `ghcr.io/zglate/unifi/{arch}:<previous-addon-version>`.
+
+Do not delete the previous GitHub release until you're confident the
+new build is stable in production.
 
 ## What NOT to do
 
@@ -128,10 +141,33 @@ tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
 - **Don't replace the patched WebRTC library** without checking if the
   DONT-FRAGMENT bug is fixed upstream first.
 
+## Cleaning up failed releases
+
+If a release was created in error (e.g., bad commit, deploy failed and
+left a half-pushed manifest), delete both the release and the tag:
+
+```
+gh release delete v<VERSION> --yes
+git push origin --delete v<VERSION>
+```
+
+For a successful but superseded release, do nothing — keep it as a
+rollback target.
+
 ## Cleaning up stale GHCR images
 
-When you delete a release, the GHCR images for that version remain. To clean
-them up:
+GHCR images are independent of GitHub releases. Deleting a release
+does NOT delete the image; the image remains pullable until you
+explicitly delete the package version.
+
+**Almost always: don't.** The image is what makes the rollback path
+work. The only legitimate reason to delete a tagged image is if it was
+pushed broken (failed deploy) and you don't want anyone pulling it.
+**Never delete untagged versions** — they're backing manifests for
+multi-arch indexes; deleting them breaks pulls of the tagged versions
+that reference them.
+
+If you must clean up a specific tagged version:
 
 ```bash
 # List versions for a package
