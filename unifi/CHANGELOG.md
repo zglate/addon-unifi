@@ -1,5 +1,26 @@
 # Changelog
 
+## 20260518-01
+
+UniFi Network Application 10.4.57 introduces enhanced routing and visibility features, including a new Routing experience with expanded Policy-Based Routing capabilities.
+
+**WAN Insights and WiFi Airtime Visibility**
+
+Expanded Dashboard visibility with new WiFi Airtime, Multicast, and WAN health insights, along with improved ISP and 5G monitoring through enhanced connectivity details, SLA visibility, and utilization metrics.
+
+- Added WiFi Airtime and Multicast activity graphs to the Dashboard.
+- Improved the WAN and ISP side panel with SLA, latency, packet loss, and utilization insights.
+- Expanded 5G and cellular connection visibility and diagnostics.
+  - Requires U5G firmware 7.4.1 or newer.
+
+**Routing User Experience/FIB table**
+
+Introduced a centralized Routing view for managing and troubleshooting Static, OSPF, BGP, Connected, and Policy-Based routes, along with a unified FIB table that provides visibility into route destinations, next hops, interfaces, metrics, and routing sources across the gateway.
+
+_40 improvements and 20 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-4-57/92694b29-fd78-4d52-906a-3211136610e2)
+
 ## 20260428-01
 
 UniFi Network Application 10.3.58 includes the improvements and bugfixes below.
