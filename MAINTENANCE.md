@@ -109,13 +109,11 @@ tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
 - The date is when the build was made, NN is the build number for that day
 - This decouples the addon version from the UniFi version, which matters
   when you need to downgrade UniFi but still have HA see it as an "update"
-- Release tags use the UniFi version (`v10.4.57`), not the addon version.
-  This makes the release page readable as a UniFi version history.
-- **Tag convention changed 2026-05-18.** Releases before `v10.4.57` used
-  the addon version as the tag (`v20260428-01`, `v20260417-01`, ...) with
-  the UniFi version in the title. Don't retag the historical ones — that
-  breaks the immutable-tag contract and there's no benefit. Just follow
-  the UniFi-version pattern going forward.
+- **Release tag = addon version, title = UniFi version.** Tag `v20260518-01`,
+  title `UniFi 10.4.57`. The addon version is the unique key (multiple
+  addon builds can ship the same UniFi version — see `v20260413-02` and
+  `v20260413-03`, both UniFi 10.2.105), so it has to be in the tag. The
+  UniFi version goes in the title for readability.
 
 ## Rolling back
 
