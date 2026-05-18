@@ -111,6 +111,11 @@ tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
   when you need to downgrade UniFi but still have HA see it as an "update"
 - Release tags use the UniFi version (`v10.4.57`), not the addon version.
   This makes the release page readable as a UniFi version history.
+- **Tag convention changed 2026-05-18.** Releases before `v10.4.57` used
+  the addon version as the tag (`v20260428-01`, `v20260417-01`, ...) with
+  the UniFi version in the title. Don't retag the historical ones — that
+  breaks the immutable-tag contract and there's no benefit. Just follow
+  the UniFi-version pattern going forward.
 
 ## Rolling back
 
