@@ -37,21 +37,25 @@ can pick this up without repeating the mistakes from the initial build.
 
 6. **Push to main.**
 
-7. **Generate the changelog entry** for `unifi/CHANGELOG.md` from upstream's release notes, then create a GitHub release tagged `v<version>`:
+7. **Generate the changelog entry** for `unifi/CHANGELOG.md` from upstream's release notes, then create a GitHub release.
 
    ```
-   python3 scripts/release_notes.py <UNIFI_VERSION>
+   .venv/Scripts/python.exe scripts/release_notes.py <UNIFI_VERSION>
    ```
 
    That prints a markdown summary (Overview features, counts of improvements/bugfixes, link to full notes). Paste it into `unifi/CHANGELOG.md` under a new `## <ADDON_VERSION>` heading and commit.
 
    The same script runs in `check-upstream.yaml` and embeds the same summary in the GitHub issue you got notified with — copying from the issue is equivalent.
 
-   Then:
+   Then create the release. **Tag = addon version, title = "UniFi <unifi-version>"**:
 
    ```
-   gh release create v<VERSION> --title "UniFi <VERSION>" --notes "<what changed>"
+   gh release create v<ADDON_VERSION> \
+     --title "<ADDON_VERSION> (UniFi <UNIFI_VERSION>)" \
+     --notes "<what changed>"
    ```
+
+   Example: `gh release create v20260518-01 --title "20260518-01 (UniFi 10.4.57)" ...`
 
 8. **Wait for the release event to trigger the deploy workflow.**
 
@@ -65,7 +69,21 @@ can pick this up without repeating the mistakes from the initial build.
    manifest (HA update then fails with HTTP 404). Only use the manual
    dispatch as a recovery if the release event genuinely didn't fire.
 
-9. **Leave previous releases in place.** Each release is a rollback
+9. **Close the upstream-tracker issue.** `check-upstream.yaml` opens a
+   labeled issue (`new-upstream-version`) for each new UniFi release.
+   Once the deploy succeeds, close it with a link to the new release:
+
+   ```
+   gh issue close <NUMBER> --comment "Shipped in [v<ADDON_VERSION>](<release-url>) (UniFi <UNIFI_VERSION>). <patch status>"
+   ```
+
+   Find the open issue with `gh issue list --label new-upstream-version --state open`.
+
+   A future improvement is to automate this in `deploy.yaml`, but for
+   now it's manual — and the workflow does NOT auto-close, so an
+   uncleared issue will sit there until you close it.
+
+10. **Leave previous releases in place.** Each release is a rollback
    target: the GHCR image for the previous tag is still pullable, so
    reverting `unifi/config.yaml` to the previous addon version is a
    one-commit rollback. GitHub releases are free metadata; HA
