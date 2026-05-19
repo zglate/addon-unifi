@@ -29,6 +29,10 @@ can pick this up without repeating the mistakes from the initial build.
    - `unifi/config.yaml` - change the `version` field
    - `unifi/CHANGELOG.md` - add a new version entry at the top
 
+   README.md does NOT have a hard-coded version. If you ever feel
+   tempted to add one back, don't — it goes stale within one ship
+   cycle. The releases page is the source of truth.
+
 5. **Commit both in a single commit.** Message format: `UniFi <version>`
 
 6. **Push to main.**

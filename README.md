@@ -8,7 +8,7 @@ The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) or
 
 ## Current version
 
-**UniFi Network Application 10.3.58**
+See [the latest release](https://github.com/zglate/addon-unifi/releases/latest) for the UniFi version currently packaged.
 
 ## Installation
 
