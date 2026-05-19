@@ -24,14 +24,14 @@ can pick this up without repeating the mistakes from the initial build.
    on the md5 check, the patch offsets need re-deriving (see "Re-patching
    the WebRTC library" below). Otherwise, no action needed.
 
-4. **Edit three files:**
+4. **Edit four files:**
    - `unifi/Dockerfile` - change the version in the download URL
-   - `unifi/config.yaml` - change the `version` field
+   - `unifi/config.yaml` - change the `version` field (addon date version)
    - `unifi/CHANGELOG.md` - add a new version entry at the top
+   - `README.md` - update the "Current version" line to the new UniFi version
 
-   README.md does NOT have a hard-coded version. If you ever feel
-   tempted to add one back, don't — it goes stale within one ship
-   cycle. The releases page is the source of truth.
+   All four must move together. The README version is user-facing and
+   needs to match what actually ships.
 
 5. **Commit both in a single commit.** Message format: `UniFi <version>`
 
