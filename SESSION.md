@@ -115,9 +115,13 @@ SSH key is authorized on the HA box (Advanced SSH & Web Terminal addon).
 
 ## What NOT to do
 
+- Don't change the release tag convention. Tag = addon version (`v20260518-01`), title = UniFi version. Addon versions are the unique key because the same UniFi version can ship twice (`v20260413-02` and `-03` both shipped UniFi 10.2.105). Learned 2026-05-18 — shipped `v10.4.57` by tag, had to delete and recreate.
 - Don't delete previous GitHub releases just because they're old — they're rollback targets. Only delete releases that were created in error or had broken builds.
 - Don't delete untagged GHCR package versions (they're backing manifests, deleting breaks pulls)
 - Don't delete tagged GHCR images for successful releases — that destroys the rollback path
+- Don't follow MAINTENANCE.md rules without checking whether they still make sense. The old "delete previous release" rule got reflexively applied for months before being questioned. Read the rationale, not just the rule.
+- Don't change a long-standing convention without first finding the load-bearing constraint that made someone choose it. "More readable" isn't a sufficient reason on its own.
+- Don't construct multi-line commit messages with `$(printf '\n')` in single-line bash — the result is one mashed line. Use `git commit -F - <<'EOF'` heredoc.
 - Don't use hassio-addons shared workflows (need DISPATCH_TOKEN)
 - Don't switch gh auth back to zglate without being asked
 - Don't trust upstream DOCS.md claims without verifying

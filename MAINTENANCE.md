@@ -129,6 +129,20 @@ new build is stable in production.
 
 ## What NOT to do
 
+- **Don't change the release tag convention to use the UniFi version.**
+  It looks more readable on the releases page, but addon versions are
+  non-unique within a UniFi version (`v20260413-02` and `v20260413-03`
+  both shipped UniFi 10.2.105 — a reroll after a bad build). The addon
+  version has to be the tag because it's the unique identifier. Learned
+  2026-05-18 the hard way: shipped `v10.4.57`, had to delete it and
+  recreate as `v20260518-01`. Before "improving" a convention that's
+  in place, find the load-bearing constraint first.
+- **Don't follow a "delete the previous release" rule reflexively.**
+  Previous releases are rollback targets — the GHCR image they
+  reference is what makes `config.yaml` revert work. The old
+  MAINTENANCE.md said to delete them; that was wrong. Only delete a
+  release if it was created in error or had a broken build. See
+  "Rolling back" above.
 - **Don't create a release before the code is ready.** Get the commit right
   first, then tag and release. Deleting and recreating releases leaves ghost
   tags and stale GHCR images.
@@ -143,6 +157,11 @@ new build is stable in production.
   Our CI/CD is self-contained.
 - **Don't replace the patched WebRTC library** without checking if the
   DONT-FRAGMENT bug is fixed upstream first.
+- **Don't construct multi-line git commit messages with `$(printf '\n')`
+  in a single-line bash command.** The substitutions run in the outer
+  shell but the resulting `-m` argument is still one long line — git
+  records it as a title-only commit with no body separator. Use a
+  heredoc instead: `git commit -F - <<'EOF'`.
 
 ## Cleaning up failed releases
 
