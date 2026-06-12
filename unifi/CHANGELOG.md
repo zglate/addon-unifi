@@ -1,5 +1,12 @@
 # Changelog
 
+## 20260612-03
+
+Changed the sidebar icon to a cleaner mark.
+
+- Replaced the router icon with `mdi:radiobox-marked`, a ring with a centered dot that echoes the UniFi logo.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-02
 
 Made the inline sidebar view always-on and removed the configuration toggle that made the add-on unusable in the previous release.

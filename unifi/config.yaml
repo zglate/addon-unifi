@@ -1,6 +1,6 @@
 ---
 name: UniFi Network Application (Fast Track)
-version: "20260612-02"
+version: "20260612-03"
 slug: unifi
 description: Manage your UniFi network using a web browser
 url: https://github.com/zglate/addon-unifi
@@ -9,7 +9,7 @@ webui: https://[HOST]:[PORT:8443]
 ingress: true
 ingress_port: 8099
 ingress_stream: true
-panel_icon: mdi:router-network
+panel_icon: mdi:radiobox-marked
 panel_title: UniFi
 stage: experimental
 startup: services
