@@ -125,6 +125,60 @@ contain attribute 0x001A. Use tcpdump inside the container to verify:
 tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
 ```
 
+## Ingress sidebar base-path rewrites
+
+The optional sidebar view (the `ingress` add-on option) works by rewriting a
+small set of hardcoded base-path literals in the UniFi web bundles at request
+time, in `unifi/rootfs/etc/nginx/ingress-proxy.conf`. The UniFi SPA assumes it
+lives at the web root; the rewrites carry the live HA ingress prefix
+(`$http_x_ingress_path`) into those literals so it works behind the prefix.
+
+**The literals are content-based, so they survive the per-release bundle-hash
+filename renames.** They are NOT guaranteed to survive a UniFi version bump.
+The `init-unifi` run script greps for each one at startup (only when ingress is
+on) and logs a warning if any is missing, that warning is the canary that the
+rewrites need updating.
+
+Current literals (must match `ingress-proxy.conf` and the `init-unifi` canary):
+
+| Where | Literal |
+|---|---|
+| `index.html` | `<base href="/manage/">` |
+| angular `index.js` (chunk loader) | `BASE_HREF:"/manage/"` |
+| angular `index.js` (API + WS root) | `apiAdapter:new i.default("/")` |
+| `swai.*.js` (React Router basename) | `baseUrl="/manage/"` |
+| setup `main.js` (axios base) | `baseURL:"/",withCredentials` |
+
+**Re-deriving them** (when the canary warns): exec into the running container
+and inspect `/usr/lib/unifi/webapps/ROOT/app-unifi/`. The router basename is
+the subtle one, in standalone+local mode swai hardcodes
+`a?.isStandalone&&a?.isLocal&&(a.baseUrl="/manage/")`, and THAT assignment (not
+the boot option) is the basename. Validate against a real prefix locally with
+the harness in `investigations/ingress/` (an nginx that fakes HA ingress in
+front of the addon image) before shipping. Watch for `PREFIX-ESCAPE` in the
+browser Network tab, that is the tripwire for a path that dodged a rewrite.
+
+Other ingress gotchas already handled in `ingress-proxy.conf` (don't remove):
+strip `Origin`/`Referer` (UniFi CSRF guard rejects the proxied values), hide
+`Strict-Transport-Security` (else it poisons the HA origin), `absolute_redirect
+off` + re-prefix `Location` (keep redirects inside the ingress path), and the
+WebSocket `Upgrade`/`Connection` forwarding (live events).
+
+## Verifying the GHCR image after a deploy
+
+Especially if a deploy ran twice for the same tag (the race in step 8), confirm
+both arch images exist and the manifest is intact before updating HA:
+
+```
+for arch in aarch64 amd64; do
+  gh api "user/packages/container/unifi%2F$arch/versions" \
+    | python -c "import sys,json; v=[x for x in json.load(sys.stdin) if '<ADDON_VERSION>' in x['metadata']['container']['tags']]; print('$arch', v[0]['metadata']['container']['tags'] if v else 'MISSING')"
+done
+# Definitive pull-side check (manifest must resolve, not 404):
+echo "$(gh auth token)" | docker login ghcr.io -u zglate --password-stdin
+docker buildx imagetools inspect ghcr.io/zglate/unifi/aarch64:<ADDON_VERSION>
+```
+
 ## Versioning scheme
 
 - Date-based: `YYYYMMDD-NN` (e.g., `20260409-03`)
@@ -260,3 +314,45 @@ The `zglate` account is used for this fork. The gh CLI needs these scopes:
 ```
 gh auth login -h github.com -w -s repo,workflow,read:packages,write:packages
 ```
+
+**The token is a gh OAuth token (`gho_...`), not a classic PAT.** That matters:
+
+- OAuth tokens need the **`workflow`** scope to trigger Actions on `push` /
+  `release`. Without it, your push lands and your release publishes, but no CI
+  or Deploy run starts (silently). Symptom: "I shipped but nothing built."
+- Pushing to GHCR (manual `docker push`, or the Deploy workflow) needs
+  **`write:packages`**.
+- **Verify the real scopes with `GH_DEBUG=1 gh auth status`** (it prints the
+  actual keyring token scopes). Do NOT trust `gh api -i user`'s
+  `X-Oauth-Scopes` header or plain `gh auth status` here, both have served
+  STALE scope lists and sent a whole session chasing a non-problem. If the
+  scopes look wrong, re-run the `gh auth login` above and approve every scope
+  on the consent page before re-checking with `GH_DEBUG=1`.
+- Two accounts are usually logged in (`zglate`, `zglate`). Confirm `zglate`
+  is active (`gh auth status` shows "Active account: true"). Never switch to
+  `zglate` for this fork.
+
+**Creating a release when `gh release create` complains about the `workflow`
+scope:** that's a client-side gh check, not an API requirement. Create the
+release straight through the REST API (needs only `repo`):
+
+```
+gh api repos/zglate/addon-unifi/releases -X POST \
+  -f tag_name=v<ADDON_VERSION> -f target_commitish=main \
+  -f name="<ADDON_VERSION> (UniFi <UNIFI_VERSION>)" -f body="<notes>"
+```
+
+## Checking CI/CD status: do NOT trust `gh run list`
+
+`gh run list` (and `gh run list --workflow=...`) has repeatedly served a
+**stale cached page** that showed runs from weeks ago as the "latest," making
+it look like push/release events never triggered anything. They had. This
+burned a whole session. For ground truth, hit the runs API directly:
+
+```
+gh api 'repos/zglate/addon-unifi/actions/runs?per_page=5' \
+  | python -c "import sys,json; [print(r['created_at'],r['name'],r['event'],r['status'],r['conclusion']) for r in json.load(sys.stdin)['workflow_runs']]"
+```
+
+If that shows your run (even `in_progress`), the trigger worked, stop
+debugging the trigger.
