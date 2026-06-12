@@ -62,22 +62,20 @@ fi
 # Ingress base-path canary. The sidebar proxy (ingress-proxy.conf) rewrites a
 # small set of content literals in the UniFi bundles so the SPA works behind
 # HA's path prefix. The literals are stable across bundle-hash renames but a
-# new UniFi version could change them. If any is missing while ingress is on,
-# warn loudly: the sidebar UI will break, but direct-port access is unaffected.
-if bashio::config.true 'ingress'; then
-    readonly WEBAPP="/usr/lib/unifi/webapps/ROOT/app-unifi"
-    declare -a ingress_literals=(
-        '<base href="/manage/">'
-        'BASE_HREF:"/manage/"'
-        'apiAdapter:new i.default("/")'
-        'baseUrl="/manage/"'
-        'baseURL:"/",withCredentials'
-    )
-    for literal in "${ingress_literals[@]}"; do
-        if ! grep -rqF "${literal}" "${WEBAPP}" 2>/dev/null; then
-            bashio::log.warning \
-                "Ingress canary: literal not found in UniFi bundles -> [${literal}]." \
-                "The sidebar UI may render incorrectly; ingress-proxy.conf needs updating for this UniFi version."
-        fi
-    done
-fi
+# new UniFi version could change them. If any is missing, warn loudly: the
+# sidebar UI will break, but direct-port access is unaffected.
+readonly WEBAPP="/usr/lib/unifi/webapps/ROOT/app-unifi"
+declare -a ingress_literals=(
+    '<base href="/manage/">'
+    'BASE_HREF:"/manage/"'
+    'apiAdapter:new i.default("/")'
+    'baseUrl="/manage/"'
+    'baseURL:"/",withCredentials'
+)
+for literal in "${ingress_literals[@]}"; do
+    if ! grep -rqF "${literal}" "${WEBAPP}" 2>/dev/null; then
+        bashio::log.warning \
+            "Ingress canary: literal not found in UniFi bundles -> [${literal}]." \
+            "The sidebar UI may render incorrectly; ingress-proxy.conf needs updating for this UniFi version."
+    fi
+done

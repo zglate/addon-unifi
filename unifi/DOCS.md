@@ -38,24 +38,22 @@ memory_init: 512
 
 **Note**: _This is just an example, don't copy and paste it! Create your own!_
 
-### Option: `ingress`
+### Sidebar view (ingress)
 
-When enabled, the UniFi Network Application interface renders directly inside
-the Home Assistant frontend via a "UniFi" entry in the sidebar, instead of
-only being reachable through the "Open Web UI" button.
+The UniFi Network Application interface renders directly inside the Home
+Assistant frontend. Use the **Show in sidebar** toggle on the add-on's Info tab
+to add (or hide) a "UniFi" entry in the sidebar; the "Open Web UI" button opens
+the same inline view. This works through Home Assistant Cloud (Nabu Casa)
+without exposing port 8443.
 
-This is **off by default**. The UniFi web app hardcodes that it lives at the
-web root, so the add-on runs an internal reverse proxy that rewrites the app's
-base paths on the fly to work behind the Home Assistant ingress path. The set
-of patched references is stable across UniFi releases but is not guaranteed to
-be: if a future UniFi version changes them, the sidebar view may render
+There is no option to configure. The UniFi web app hardcodes that it lives at
+the web root, so the add-on runs an internal reverse proxy that rewrites the
+app's base paths on the fly to work behind the Home Assistant ingress path. The
+set of patched references is stable across UniFi releases but is not guaranteed
+to be: if a future UniFi version changes them, the sidebar view may render
 incorrectly until the add-on is updated. The add-on logs a warning at startup
-if it detects this. Direct access (the "Open Web UI" button and port 8443) is
-never affected, so you can always fall back to it.
-
-Remote access through Home Assistant Cloud (Nabu Casa) works with the sidebar
-view, because the UI is served through Home Assistant itself rather than the
-direct 8443 port.
+if it detects this. The direct interface on port 8443 is never affected, so you
+can always reach UniFi there.
 
 ### Option: `log_level`
 

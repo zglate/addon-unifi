@@ -5,14 +5,8 @@
 # Runs the nginx reverse proxy that renders the UniFi UI in the HA sidebar
 # ==============================================================================
 
-if bashio::config.true 'ingress'; then
-    bashio::log.info \
-        'Inline ingress enabled: UniFi UI will render in the Home Assistant sidebar.'
-    ln -sf /etc/nginx/ingress-proxy.conf /etc/nginx/active-server.conf
-else
-    bashio::log.info \
-        "Inline ingress disabled. Enable the 'ingress' option to render UniFi in the sidebar."
-    ln -sf /etc/nginx/ingress-disabled.conf /etc/nginx/active-server.conf
-fi
+bashio::log.info \
+    'Starting ingress proxy: the UniFi UI is available in the Home Assistant sidebar.'
+ln -sf /etc/nginx/ingress-proxy.conf /etc/nginx/active-server.conf
 
 exec nginx

@@ -1,5 +1,15 @@
 # Changelog
 
+## 20260612-02
+
+Made the inline sidebar view always-on and removed the configuration toggle that made the add-on unusable in the previous release.
+
+- The UniFi UI now renders inline in Home Assistant with no setup. Use the native "Show in sidebar" toggle on the Info tab to add or hide the "UniFi" entry; "Open Web UI" always opens the same inline view.
+- Removed the `ingress` configuration option from 20260612-01. With ingress on, Home Assistant's "Open Web UI" button always targets the inline panel, so an off switch could only ever produce a dead-end page. The internal reverse proxy now always runs.
+- The base-path rewrites, redirect re-prefixing, authenticated API, and the live-events WebSocket were all verified end to end against the Home Assistant ingress path.
+- Direct access on port 8443 is unaffected and always available.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-01
 
 Added an optional Home Assistant sidebar view for the UniFi interface (ingress).
