@@ -17,6 +17,15 @@ The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) or
 3. Add: `https://github.com/zglate/addon-unifi`
 4. Refresh and install "UniFi Network Application (Fast Track)"
 
+## Sidebar access (optional)
+
+This fork can render the UniFi interface directly in the Home Assistant
+sidebar, rather than only behind the "Open Web UI" button. It is off by
+default; enable the `ingress` option on the addon's Configuration tab and
+restart. This also makes the UI reachable through Home Assistant Cloud (Nabu
+Casa) without exposing port 8443. See the addon Documentation tab for details
+and caveats.
+
 ## Migrating from the community addon
 
 This fork uses a different repository URL, so Home Assistant treats it as a separate addon. Your existing UniFi data will not carry over automatically.

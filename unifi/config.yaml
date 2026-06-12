@@ -1,11 +1,16 @@
 ---
 name: UniFi Network Application (Fast Track)
-version: "20260518-01"
+version: "20260612-01"
 slug: unifi
 description: Manage your UniFi network using a web browser
 url: https://github.com/zglate/addon-unifi
 image: "ghcr.io/zglate/unifi/{arch}"
 webui: https://[HOST]:[PORT:8443]
+ingress: true
+ingress_port: 8099
+ingress_stream: true
+panel_icon: mdi:router-network
+panel_title: UniFi
 stage: experimental
 startup: services
 arch:
@@ -38,7 +43,10 @@ ports_description:
   8880/tcp: Used for HTTP portal redirection
   10001/udp: Used for device discovery
 hassio_api: true
+options:
+  ingress: false
 schema:
+  ingress: bool?
   log_level: list(trace|debug|info|notice|warning|error|fatal)?
   memory_max: int?
   memory_init: int?

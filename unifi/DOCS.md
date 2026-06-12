@@ -38,6 +38,25 @@ memory_init: 512
 
 **Note**: _This is just an example, don't copy and paste it! Create your own!_
 
+### Option: `ingress`
+
+When enabled, the UniFi Network Application interface renders directly inside
+the Home Assistant frontend via a "UniFi" entry in the sidebar, instead of
+only being reachable through the "Open Web UI" button.
+
+This is **off by default**. The UniFi web app hardcodes that it lives at the
+web root, so the add-on runs an internal reverse proxy that rewrites the app's
+base paths on the fly to work behind the Home Assistant ingress path. The set
+of patched references is stable across UniFi releases but is not guaranteed to
+be: if a future UniFi version changes them, the sidebar view may render
+incorrectly until the add-on is updated. The add-on logs a warning at startup
+if it detects this. Direct access (the "Open Web UI" button and port 8443) is
+never affected, so you can always fall back to it.
+
+Remote access through Home Assistant Cloud (Nabu Casa) works with the sidebar
+view, because the UI is served through Home Assistant itself rather than the
+direct 8443 port.
+
 ### Option: `log_level`
 
 The `log_level` option controls the level of log output by the addon and can
@@ -108,14 +127,9 @@ you can manually adopt a device by following these steps:
 
   This is a known issue, however, the add-on functions normally.
 
-- Due to security policies in the UniFi Network Application software, it is
-  currently impossible to add the UniFi web interface to your Home Assistant
-  frontend using a `panel_iframe`.
 - The broadcast feature of the EDU type APs are currently not working with
   this add-on. Due to a limitation in Home Assistant, it is currently impossible
   to open the required "range" of ports needed for this feature to work.
-- This add-on cannot support Ingress due to technical limitations of the
-  UniFi software.
 - During making a backup of this add-on via Home Assistant, this add-on will
   temporarily shutdown and start up after the backup has finished. This prevents
   data corruption during taking the backup.

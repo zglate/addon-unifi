@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260612-01
+
+Added an optional Home Assistant sidebar view for the UniFi interface (ingress).
+
+- Enable the `ingress` option on the Configuration tab and restart to render the UniFi UI directly inside Home Assistant. It is off by default.
+- The UniFi web app hardcodes that it lives at the web root, so the add-on runs an internal reverse proxy that rewrites the app's base paths so it works behind the Home Assistant ingress path. A startup canary warns if a future UniFi release changes those references.
+- This also makes the UI reachable through Home Assistant Cloud (Nabu Casa) without exposing port 8443. Direct access via "Open Web UI" is unchanged.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260518-01
 
 UniFi Network Application 10.4.57 introduces enhanced routing and visibility features, including a new Routing experience with expanded Policy-Based Routing capabilities.

@@ -1,0 +1,7 @@
+# s6-overlay service scripts and nginx configs must use LF. A stray CRLF puts
+# a \r on the shebang (s6 then fails with exit 127) and breaks bash line
+# continuations. Force LF in the working tree regardless of core.autocrlf.
+unifi/rootfs/** text eol=lf
+*.sh text eol=lf
+*.conf text eol=lf
+scripts/*.py text eol=lf
