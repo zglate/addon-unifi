@@ -23,7 +23,11 @@ This fork renders the UniFi interface directly in the Home Assistant sidebar.
 Use the **Show in sidebar** toggle on the addon's Info tab to add or hide the
 "UniFi" entry; the "Open Web UI" button opens the same inline view. This also
 makes the UI reachable through Home Assistant Cloud (Nabu Casa) without
-exposing port 8443. See the addon Documentation tab for details and caveats.
+exposing port 8443, and it works in the Home Assistant companion apps (iOS and
+Android). In the mobile apps UniFi shows a dismissable "browser is not
+supported" notice because it does not recognize the in-app browser; this is
+cosmetic and the interface works. See the addon Documentation tab for details
+and caveats.
 
 ## Migrating from the community addon
 

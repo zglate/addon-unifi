@@ -55,6 +55,12 @@ incorrectly until the add-on is updated. The add-on logs a warning at startup
 if it detects this. The direct interface on port 8443 is never affected, so you
 can always reach UniFi there.
 
+The sidebar view also works in the Home Assistant companion apps (iOS and
+Android), including over Home Assistant Cloud. In the mobile apps UniFi shows a
+dismissable "the browser you are using is not supported" notice, because it does
+not recognize the app's in-app browser. This is cosmetic; the interface works.
+Dismiss it with the X.
+
 ### Option: `log_level`
 
 The `log_level` option controls the level of log output by the addon and can
