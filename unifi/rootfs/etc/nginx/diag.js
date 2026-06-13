@@ -164,13 +164,26 @@
                   var captured = [];
                   var args = Array.prototype.slice.call(arguments);
                   var trap = makeTrap(captured, 0);
-                  args[0] = function (acc, cur, i, arr) { return cb.call(this, trap(acc), trap(cur), i, arr); };
+                  // Trap acc, cur and the array argument; closure targets escape
+                  // the proxy, so we also dump the callback's own source (the
+                  // assignment statement names the target directly).
+                  args[0] = function (acc, cur, i, arr) { return cb.call(this, trap(acc), trap(cur), i, trap(arr)); };
                   try { orig.apply(this, args); } catch (e2) { /* expected: same throw */ }
+                  var arrSample = null;
+                  try {
+                    if (this && typeof this.length === "number") {
+                      arrSample = Array.prototype.slice.call(this, 0, 9).map(function (el) {
+                        return (el && typeof el === "object") ? { ctor: el.constructor && el.constructor.name, keys: Object.getOwnPropertyNames(el).slice(0, 12) } : (el === null ? "null" : typeof el);
+                      });
+                    }
+                  } catch (se) { arrSample = { sampleError: String(se) }; }
                   emit("readonly.reduce", {
                     method: name,
                     error: errFields(e),
                     captured: captured.slice(0, 10),
-                    arrLen: (this && this.length) || null
+                    arrLen: (this && this.length) || null,
+                    cbSource: String(cb).slice(0, 1400),
+                    arrSample: arrSample
                   });
                 } catch (inner) {
                   emit("readonly.reduce.fail", { error: errFields(e), instrError: String(inner) });

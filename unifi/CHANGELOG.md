@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260613-04
+
+Diagnostic build that adds the final piece needed to locate the iOS sidebar crash. The 20260613-03 capture confirmed the failing operation and its position, but showed the bad assignment targets a value held in a local variable that the previous instrumentation could not reach. This build records the source text of the failing operation itself, which names the assignment directly, so the offending code can be located in the UniFi bundle. Still no fix; this is the last evidence-gathering step.
+
+- Records the source of the failing callback and a summary of the data it was processing, alongside the error location already captured.
+- All reporting still goes to the add-on Log tab, prefixed `INGRESS-CLIENT-DIAG`.
+- This reporter is temporary and will be removed once the cause is identified.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-03
 
 Diagnostic build that extends the 20260613-02 reporter to name the exact cause of the iOS-only sidebar crash. The 20260613-02 capture proved the unauthenticated login page aborts with a JavaScript "Attempted to assign to readonly property" error inside the UniFi code, which is what produces the "400: Bad Request" screen. That property is readonly on iOS but writable on desktop, so it cannot be identified anywhere except on a real device. This build still contains no fix; it gathers the last piece of evidence.
