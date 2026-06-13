@@ -79,6 +79,31 @@ RUN \
     && verify_bytes "${X86_64_LIB}"  $((0x114CB9)) 5 "9090909090" "x86_64 post-patch site 1" \
     && verify_bytes "${X86_64_LIB}"  $((0x1157D7)) 5 "9090909090" "x86_64 post-patch site 2" \
     \
+    # Patch base.js: fix a latent bug in UniFi's fetch-response adapter that
+    # crashes the Angular login route on iOS WebKit (the inline ingress UI shows
+    # a "400" page on iPhone while desktop works). The adapter builds a header
+    # map with:
+    #   Array.from(resp.headers).reduce(function(e,t){return(e[t[0]]=t[1])&&e},{})
+    # The "&&e" returns the accumulator only when the header value is truthy. An
+    # empty-valued response header collapses the accumulator to "", so the next
+    # header assignment writes to a string primitive, which strict mode on iOS
+    # WebKit rejects with "Attempted to assign to readonly property." That fails
+    # the route resolve and lands the SPA on /manage/fatal ("400"). Desktop
+    # WebKit never hit it because the responses it saw had no empty-valued header
+    # in a non-final position. Switching "&&" to a comma makes the reduce always
+    # return the accumulator object regardless of header values.
+    # The bundle filename carries a per-release hash but this callback is a
+    # content literal that survives renames; the count check fails the build
+    # loudly if UniFi ever changes the code so the patch can be re-derived.
+    && BASE_JS="$(ls /usr/lib/unifi/webapps/ROOT/app-unifi/angular/*/js/base.js)" \
+    && BEFORE="$(grep -cF '(e[t[0]]=t[1])&&e' "${BASE_JS}" || true)" \
+    && if [ "${BEFORE}" != "1" ]; then echo "FAIL: base.js header-map reduce: expected 1 occurrence, found ${BEFORE} (UniFi bundle changed; re-derive patch)" >&2; exit 1; fi \
+    && sed -i 's/(e\[t\[0]]=t\[1])&&e/(e[t[0]]=t[1]),e/' "${BASE_JS}" \
+    && AFTER_BUGGY="$(grep -cF '(e[t[0]]=t[1])&&e' "${BASE_JS}" || true)" \
+    && AFTER_FIXED="$(grep -cF '(e[t[0]]=t[1]),e' "${BASE_JS}" || true)" \
+    && if [ "${AFTER_BUGGY}" != "0" ] || [ "${AFTER_FIXED}" != "1" ]; then echo "FAIL: base.js header-map reduce patch did not land (buggy=${AFTER_BUGGY} fixed=${AFTER_FIXED})" >&2; exit 1; fi \
+    && echo "OK: patched base.js header-map reduce in ${BASE_JS}" \
+    \
     && apt-get clean \
     && rm -fr \
         /tmp/* \

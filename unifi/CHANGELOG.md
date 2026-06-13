@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260613-05
+
+Fixes the iOS-only sidebar crash where the inline view showed a "400: Bad Request" page while desktop browsers worked. The evidence gathered in 20260613-02 through 20260613-04 located the exact cause: a latent bug in UniFi's own code that builds an object from a network response's headers. That code keeps the object only while header values are non-empty; an empty-valued response header collapses it to a text value, and the next header then tries to write a property onto that text value. iOS rejects that write as an error, which aborts the login page and shows the "400" screen. Desktop browsers never hit it because the responses they received had no empty-valued header in a position that triggered the fault.
+
+- The build now applies a one-character correction to UniFi's bundled code so the header object is always preserved regardless of header values. This is the same kind of shipped-asset patch already used for remote access and the cloud-prompt suppression, and the build fails loudly if a future UniFi version changes that code so the patch can be re-derived.
+- The on-device diagnostic reporter from 20260613-02 through 20260613-04 is retained for this build so the fix can be confirmed on a real iPhone (the readonly error should no longer appear and the login page should load). It will be removed in the next build once the fix is verified.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-04
 
 Diagnostic build that adds the final piece needed to locate the iOS sidebar crash. The 20260613-03 capture confirmed the failing operation and its position, but showed the bad assignment targets a value held in a local variable that the previous instrumentation could not reach. This build records the source text of the failing operation itself, which names the assignment directly, so the offending code can be located in the UniFi bundle. Still no fix; this is the last evidence-gathering step.
