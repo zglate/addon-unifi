@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260612-06
+
+Diagnostic build to track down a "400: Bad Request" that persists behind a Cloudflare tunnel.
+
+- Adds temporary logging to the ingress proxy that records, for each request, the total request size, the status UniFi returned, and the name and byte length of every incoming header (names and lengths only, no values). Visible in the add-on Log tab.
+- This is a troubleshooting build, not a fix. It will be removed once the offending header is identified. No functional change to the sidebar view.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-05
 
 Fixed the "400: Bad Request" that persisted for setups behind a Cloudflare Tunnel or Cloudflare Access.
