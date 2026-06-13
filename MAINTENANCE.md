@@ -190,6 +190,14 @@ to both `map` blocks and the `Cookie` line. The UniFi standalone controller has
 used `unifises` + `csrf_token` for years; the JWT `TOKEN` cookie is UniFi OS
 console, not this app.
 
+The same 8 KB limit is also hit on the **header** side when Home Assistant sits
+behind a Cloudflare Tunnel or Cloudflare Access: Cloudflare injects `Cf-*`
+request headers, and `Cf-Access-Jwt-Assertion` is a JWT that can be several KB.
+UniFi needs none of them, so `ingress-proxy.conf` clears the `Cf-*` family with
+`proxy_set_header ... ""`. If a user reports a 400 only over remote access,
+suspect a new oversized header from whatever proxy fronts HA and clear it the
+same way.
+
 ## Verifying the GHCR image after a deploy
 
 Especially if a deploy ran twice for the same tag (the race in step 8), confirm

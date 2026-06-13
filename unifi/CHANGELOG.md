@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260612-05
+
+Fixed the "400: Bad Request" that persisted for setups behind a Cloudflare Tunnel or Cloudflare Access.
+
+- Cloudflare adds large request headers (notably the `Cf-Access-Jwt-Assertion` JWT, which can run to several KB) that Home Assistant passes through to the add-on. UniFi has no use for them, and they counted toward UniFi's 8 KB header limit, so the sidebar view still failed with 400 even after the cookie fix in 20260612-04. The internal proxy now strips all `Cf-*` headers before forwarding to UniFi.
+- This is the same class of problem as 20260612-04 (oversized request headers), now covering the header side as well as the cookie side.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-04
 
 Fixed the sidebar view failing with "400: Bad Request" in the Home Assistant mobile apps.
