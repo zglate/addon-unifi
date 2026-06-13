@@ -1,5 +1,15 @@
 # Changelog
 
+## 20260613-01
+
+Attempts to address the iOS-only sidebar crash where the view showed a "400: Bad Request" page while desktop browsers worked. This is a targeted change based on code investigation, not a confirmed fix; it has not yet been verified on a device.
+
+- The "400" page is UniFi's own internal `/manage/fatal` error screen, whose label defaults to "400". It is not an HTTP 400 from the server, and direct access on port 8443 is unaffected.
+- Investigation points to UniFi's startup code reading `window.localStorage` without guarding the access. Inside Home Assistant's iframe, iOS WebKit can throw on that access when cross-site tracking prevention or cookie blocking is active, which would abort startup and route to the fatal page. This throw has not been observed directly on a device, so the cause is suspected, not proven.
+- The internal proxy now injects a small storage guard ahead of the UniFi app. It keeps using real browser storage when that works (no change on desktop, saved preferences preserved) and falls back to an in-memory store only when the access would throw.
+- The diagnostic request logging from 20260612-06 is retained so the behavior can be checked on devices.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-06
 
 Diagnostic build to track down a "400: Bad Request" that persists behind a Cloudflare tunnel.
