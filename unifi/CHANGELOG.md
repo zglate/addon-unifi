@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260612-04
+
+Fixed the sidebar view failing with "400: Bad Request" in the Home Assistant mobile apps.
+
+- UniFi's web server rejects requests whose headers are larger than 8 KB. Because the sidebar view is served on the same origin as Home Assistant, the browser also sends every Home Assistant and remote-access cookie to UniFi, and on the companion apps (especially over remote access) that pushed the request past the limit. The internal proxy now forwards only UniFi's own session cookies, so the request stays small. Direct access on port 8443 was never affected.
+- UniFi still shows a dismissable "browser is not supported" notice in the mobile app webview because it does not recognize the app's browser; this is cosmetic and the interface works.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260612-03
 
 Changed the sidebar icon to a cleaner mark.

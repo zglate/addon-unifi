@@ -127,7 +127,7 @@ tcpdump -i eth0 -n "host 141.101.90.1 and udp port 3478" -XX -c 4
 
 ## Ingress sidebar base-path rewrites
 
-The optional sidebar view (the `ingress` add-on option) works by rewriting a
+The sidebar view works by rewriting a
 small set of hardcoded base-path literals in the UniFi web bundles at request
 time, in `unifi/rootfs/etc/nginx/ingress-proxy.conf`. The UniFi SPA assumes it
 lives at the web root; the rewrites carry the live HA ingress prefix
@@ -135,9 +135,8 @@ lives at the web root; the rewrites carry the live HA ingress prefix
 
 **The literals are content-based, so they survive the per-release bundle-hash
 filename renames.** They are NOT guaranteed to survive a UniFi version bump.
-The `init-unifi` run script greps for each one at startup (only when ingress is
-on) and logs a warning if any is missing, that warning is the canary that the
-rewrites need updating.
+The `init-unifi` run script greps for each one at startup and logs a warning if
+any is missing, that warning is the canary that the rewrites need updating.
 
 Current literals (must match `ingress-proxy.conf` and the `init-unifi` canary):
 
@@ -163,6 +162,33 @@ strip `Origin`/`Referer` (UniFi CSRF guard rejects the proxied values), hide
 `Strict-Transport-Security` (else it poisons the HA origin), `absolute_redirect
 off` + re-prefix `Location` (keep redirects inside the ingress path), and the
 WebSocket `Upgrade`/`Connection` forwarding (live events).
+
+### Cookie trim (the iOS "400 Bad Request" fix)
+
+UniFi's embedded Jetty rejects any request whose total headers exceed 8 KB with
+a branded "400 Bad Request" page. HA serves this panel same-origin, and the
+Supervisor forwards the browser's *entire* cookie jar to the add-on unmodified
+(it strips other headers but never `Cookie`). The jar carries cookies UniFi
+never set, HA's `ingress_session`, other ingress add-ons sharing the
+`/api/hassio_ingress/` path, and Cloudflare/Nabu Casa remote-UI cookies. Over
+remote UI (the usual path for the HA companion app) that pile crosses 8 KB and
+Jetty 400s, which is why it shows in the iOS/Android apps but not always on a
+local desktop browser.
+
+Fix: forward only UniFi's own cookies. `nginx.conf` extracts `unifises` and
+`csrf_token` via `map` directives; `ingress-proxy.conf` sets
+`Cookie "$unifi_c_session; $unifi_c_csrf"`. `nginx.conf` also raises
+`large_client_header_buffers`/`client_header_buffer_size` to 16k so the add-on's
+own nginx accepts the large incoming request before trimming it.
+
+**This is a whitelist** chosen deliberately over a blacklist: the foreign cookie
+set is open-ended (other add-ons, CDN, remote-UI infra) and cannot be enumerated
+to prove it stays under 8 KB, whereas UniFi's set is just those two cookies. If
+a future UniFi version adds an auth/session cookie, it will be dropped and show
+up as a login or CSRF failure right after the upgrade, add the new cookie name
+to both `map` blocks and the `Cookie` line. The UniFi standalone controller has
+used `unifises` + `csrf_token` for years; the JWT `TOKEN` cookie is UniFi OS
+console, not this app.
 
 ## Verifying the GHCR image after a deploy
 
