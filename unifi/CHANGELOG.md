@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260613-06
+
+Fixes the login loop that appeared on iPhone once the 20260613-05 fix let the login page load. Signing in returned success, but the page bounced straight back to the login form and never reached the dashboard. The cause is that UniFi marks its session and CSRF cookies as Secure, and the Home Assistant companion app reaches this server over plain HTTP on the local network. Browsers refuse to store Secure cookies on a non-secure address, so the session cookie was set by the server but never kept by the browser, and the next request was treated as logged out. A desktop browser reaching Home Assistant over HTTPS kept the cookie, which is why this only showed up on the phone.
+
+- The internal proxy now relaxes those cookies so the browser will store them, but only when the connection to Home Assistant is actually plain HTTP. On an HTTPS connection the cookies are left exactly as UniFi sets them, so nothing is weakened where the traffic is already encrypted. Over plain HTTP the traffic is unencrypted regardless of this setting, so no protection is lost.
+- The on-device diagnostic reporter is retained for this build so the sign-in can be confirmed on a real iPhone. It will be removed in the next build once verified.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-05
 
 Fixes the iOS-only sidebar crash where the inline view showed a "400: Bad Request" page while desktop browsers worked. The evidence gathered in 20260613-02 through 20260613-04 located the exact cause: a latent bug in UniFi's own code that builds an object from a network response's headers. That code keeps the object only while header values are non-empty; an empty-valued response header collapses it to a text value, and the next header then tries to write a property onto that text value. iOS rejects that write as an error, which aborts the login page and shows the "400" screen. Desktop browsers never hit it because the responses they received had no empty-valued header in a position that triggered the fault.
