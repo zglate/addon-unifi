@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260613-07
+
+Removes the temporary on-device diagnostics now that the inline sidebar is confirmed working on iPhone, both on the local network over plain HTTP and remotely through Cloudflare over HTTPS, as well as on the desktop. Sign-in holds, the dashboard and live data load, and the live-events connection stays up. The two underlying fixes from the previous builds are kept.
+
+- Removes the client-side reporter, its script injection, and the log routes added in 20260613-02 through 20260613-04. Nothing is beaconed to the add-on Log tab any more.
+- Keeps the 20260613-05 fix to UniFi's header-handling code and the 20260613-06 cookie handling that lets sign-in work over a plain-HTTP connection. The cookie handling now runs silently, without the temporary logging.
+- One item is intentionally left in place for now: the proxy still suppresses UniFi's Content-Security-Policy. That was added for the diagnostics, but removing it is deferred until it is confirmed that passing UniFi's policy through does not block the embedded view or its live connection. It does not affect functionality.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-06
 
 Fixes the login loop that appeared on iPhone once the 20260613-05 fix let the login page load. Signing in returned success, but the page bounced straight back to the login form and never reached the dashboard. The cause is that UniFi marks its session and CSRF cookies as Secure, and the Home Assistant companion app reaches this server over plain HTTP on the local network. Browsers refuse to store Secure cookies on a non-secure address, so the session cookie was set by the server but never kept by the browser, and the next request was treated as logged out. A desktop browser reaching Home Assistant over HTTPS kept the cookie, which is why this only showed up on the phone.
