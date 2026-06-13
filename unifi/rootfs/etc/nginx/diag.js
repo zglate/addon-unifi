@@ -1,20 +1,26 @@
 /*
- * UniFi ingress client-side diagnostic reporter (TEMPORARY).
+ * UniFi ingress client-side diagnostic reporter (TEMPORARY, verbose).
  *
  * Injected into the UniFi SPA by ingress-proxy.conf to diagnose the iOS-only
  * "/manage/fatal" (mislabelled "400") crash that cannot be reproduced off-device.
- * The server only sees nginx-level traffic; the actual trigger is a client-side
- * route-resolve rejection inside iOS WebKit. This script captures that rejection
- * (and everything around it) and beacons it to the add-on's nginx error log (the
- * add-on Log tab), so the real exception is visible without a Mac, a console, or
- * Safari Web Inspector.
+ *
+ * Confirmed so far (from the 20260613-02 device capture): the unauthenticated
+ * login route (manage.account.login) resolve throws, in base.js inside a native
+ * reduce, "TypeError: Attempted to assign to readonly property." That rejection
+ * carries no HTTP status, so UI-Router's fatal handler labels it 400. The exact
+ * property cannot be found off-device: it is readonly on iOS WebKit but writable
+ * on desktop WebKit, so desktop never throws and never reveals it.
+ *
+ * This build adds a reduce interceptor (section 1b): the success path is left
+ * untouched, but the instant a reduce throws a readonly error it RE-RUNS that
+ * reduce with proxied arguments to record the exact object + property name, then
+ * rethrows the original error so app behaviour is unchanged. Plus richer error
+ * fields (sourceURL/line/column) and unfiltered early console capture.
  *
  * Beacons are sent as GET requests to /__diag?d=<json> because this nginx build
- * has only the log-phase lua (no content_by_lua), so the sink logs the query arg.
- *
- * Every hook is try/guarded and falls through to the original behaviour, so this
- * can never break the app. Remove this file and its injection once the cause is
- * identified.
+ * logs the query arg (no content_by_lua). Every hook is try/guarded and falls
+ * through to original behaviour, so this can never break the app. Remove this
+ * file and its injection once the cause is identified.
  */
 (function () {
   "use strict";
@@ -34,7 +40,7 @@
 
   var seq = 0;
   var startedAt = Date.now();
-  var MAX = 6000; // keep the GET URL under nginx's header buffer
+  var MAX = 12000; // nginx large_client_header_buffers is 8 16k; stay under it
 
   function emit(kind, data) {
     var payload;
@@ -61,6 +67,34 @@
     catch (e) { return { ok: false, error: String((e && e.name) || "") + ": " + String((e && e.message) || e) }; }
   }
 
+  // Shallow snapshot of an object, for naming the readonly target without
+  // dumping values (which could be large or sensitive).
+  function snap(o) {
+    try {
+      if (o === null) return { type: "null" };
+      if (typeof o !== "object") return { type: typeof o, value: String(o).slice(0, 80) };
+      return {
+        type: Object.prototype.toString.call(o),
+        ctor: (o.constructor && o.constructor.name) || null,
+        frozen: Object.isFrozen(o),
+        sealed: Object.isSealed(o),
+        extensible: Object.isExtensible(o),
+        keys: Object.getOwnPropertyNames(o).slice(0, 40)
+      };
+    } catch (e) { return { snapError: String(e) }; }
+  }
+
+  function errFields(e) {
+    if (!e) return null;
+    var out = { name: e.name || null, message: e.message || String(e) };
+    try { out.sourceURL = e.sourceURL; } catch (x) {}
+    try { out.line = e.line; } catch (x) {}
+    try { out.column = e.column; } catch (x) {}
+    try { out.stack = e.stack ? String(e.stack).slice(0, 1800) : null; } catch (x) {}
+    try { out.ownKeys = (typeof e === "object") ? Object.keys(e).slice(0, 20) : null; } catch (x) {}
+    return out;
+  }
+
   // ---- 1. Environment + storage capability snapshot -----------------------
   emit("env", {
     ua: navigator.userAgent,
@@ -83,6 +117,73 @@
     }
   });
 
+  // ---- 1b. Reduce interceptor: name the readonly-property assignment -------
+  //    Success path untouched (orig is called directly and returned). Only on a
+  //    readonly throw do we re-run the reduce with proxied acc/cur (and nested
+  //    objects) so the proxy's set trap records the exact target + property; then
+  //    we rethrow the original error so the crash path is preserved.
+  (function () {
+    function isReadonlyErr(e) {
+      return !!e && /read\s*-?\s*only/i.test(String((e && e.message) || e));
+    }
+    function makeTrap(captured, depth) {
+      return function trap(o) {
+        if (!o || typeof o !== "object" || depth > 3) return o;
+        var deeper = makeTrap(captured, depth + 1);
+        try {
+          return new Proxy(o, {
+            get: function (t, p, r) {
+              var v = Reflect.get(t, p, r);
+              if (v && typeof v === "object" && typeof p !== "symbol") { try { return deeper(v); } catch (e) { return v; } }
+              return v;
+            },
+            set: function (t, p, v, r) {
+              var ok;
+              try { ok = Reflect.set(t, p, v, r); } catch (e) { ok = false; }
+              if (!ok) {
+                captured.push({ prop: String(p), assignedType: (v === null ? "null" : typeof v), target: snap(t) });
+              }
+              return ok; // false -> strict assignment throws, preserving the crash
+            }
+          });
+        } catch (e) { return o; }
+      };
+    }
+    ["reduce", "reduceRight"].forEach(function (name) {
+      var orig = Array.prototype[name];
+      if (typeof orig !== "function") return;
+      try {
+        Object.defineProperty(Array.prototype, name, {
+          configurable: true, writable: true, enumerable: false,
+          value: function (cb) {
+            try {
+              return orig.apply(this, arguments);
+            } catch (e) {
+              if (isReadonlyErr(e) && typeof cb === "function") {
+                try {
+                  var captured = [];
+                  var args = Array.prototype.slice.call(arguments);
+                  var trap = makeTrap(captured, 0);
+                  args[0] = function (acc, cur, i, arr) { return cb.call(this, trap(acc), trap(cur), i, arr); };
+                  try { orig.apply(this, args); } catch (e2) { /* expected: same throw */ }
+                  emit("readonly.reduce", {
+                    method: name,
+                    error: errFields(e),
+                    captured: captured.slice(0, 10),
+                    arrLen: (this && this.length) || null
+                  });
+                } catch (inner) {
+                  emit("readonly.reduce.fail", { error: errFields(e), instrError: String(inner) });
+                }
+              }
+              throw e;
+            }
+          }
+        });
+      } catch (e) { /* leave native reduce in place */ }
+    });
+  })();
+
   // ---- 2. Uncaught errors --------------------------------------------------
   window.addEventListener("error", function (e) {
     emit("window.error", {
@@ -90,8 +191,7 @@
       filename: e.filename,
       lineno: e.lineno,
       colno: e.colno,
-      stack: (e.error && e.error.stack) ? String(e.error.stack).slice(0, 1800) : null,
-      name: (e.error && e.error.name) || null
+      error: errFields(e.error)
     });
   }, true);
 
@@ -102,8 +202,7 @@
       message: (r && r.message) ? r.message : String(r),
       name: (r && r.name) || null,
       status: (r && typeof r.status !== "undefined") ? r.status : null,
-      stack: (r && r.stack) ? String(r.stack).slice(0, 1800) : null,
-      keys: (r && typeof r === "object") ? Object.keys(r).slice(0, 20) : null
+      error: (r && typeof r === "object") ? errFields(r) : null
     });
   });
 
@@ -112,26 +211,27 @@
     emit("csp", { violatedDirective: e.violatedDirective, blockedURI: e.blockedURI, sourceFile: e.sourceFile, lineNumber: e.lineNumber });
   });
 
-  // ---- 5. The SPA logs its own fatal transition; capture it verbatim ------
-  //    base.js: console.error("$stateChangeError: ", {fromState,toState})
-  //             console.error("$stateChangeError error", p)  <-- p is the cause
+  // ---- 5. console.error/warn: SPA fatal log + unfiltered early capture -----
+  //    base.js: console.error("$stateChangeError: ", {...}); ("$stateChangeError error", cause)
+  var earlyConsole = 0;
+  function serializeArg(a) {
+    if (a instanceof Error) return { __error: true, name: a.name, message: a.message, sourceURL: a.sourceURL, line: a.line, column: a.column, stack: String(a.stack).slice(0, 1800) };
+    if (a && typeof a === "object") {
+      try { return JSON.parse(JSON.stringify(a)); }
+      catch (e) { return { __unserializable: true, keys: Object.keys(a).slice(0, 20), status: a.status, message: a.message, str: String(a) }; }
+    }
+    return a;
+  }
   ["error", "warn"].forEach(function (level) {
     var orig = console[level];
     console[level] = function () {
       try {
         var args = Array.prototype.slice.call(arguments);
         var head = args.length ? String(args[0]) : "";
-        if (head.indexOf("$stateChangeError") !== -1 || head.toLowerCase().indexOf("fatal") !== -1) {
-          emit("console." + level, {
-            args: args.map(function (a) {
-              if (a instanceof Error) return { __error: true, name: a.name, message: a.message, stack: String(a.stack).slice(0, 1800) };
-              if (a && typeof a === "object") {
-                try { return JSON.parse(JSON.stringify(a)); }
-                catch (e) { return { __unserializable: true, keys: Object.keys(a).slice(0, 20), status: a.status, message: a.message, str: String(a) }; }
-              }
-              return a;
-            })
-          });
+        var tagged = head.indexOf("$stateChangeError") !== -1 || head.toLowerCase().indexOf("fatal") !== -1 || head.toLowerCase().indexOf("readonly") !== -1;
+        if (tagged || (level === "error" && earlyConsole < 25)) {
+          if (!tagged) earlyConsole++;
+          emit("console." + level, { tagged: tagged, args: args.map(serializeArg) });
         }
       } catch (e) { /* ignore */ }
       return orig.apply(console, arguments);

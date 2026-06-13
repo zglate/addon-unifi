@@ -1,5 +1,15 @@
 # Changelog
 
+## 20260613-03
+
+Diagnostic build that extends the 20260613-02 reporter to name the exact cause of the iOS-only sidebar crash. The 20260613-02 capture proved the unauthenticated login page aborts with a JavaScript "Attempted to assign to readonly property" error inside the UniFi code, which is what produces the "400: Bad Request" screen. That property is readonly on iOS but writable on desktop, so it cannot be identified anywhere except on a real device. This build still contains no fix; it gathers the last piece of evidence.
+
+- Adds an interceptor that leaves normal operation untouched, but the instant that readonly error occurs it re-runs the failing operation with instrumented objects to record the exact object and property name involved, then re-raises the original error so behavior is unchanged.
+- Adds richer error detail (source file, line, column) and captures the first several console errors on the page, not only the one the app labels as fatal.
+- All reporting still goes to the add-on Log tab, prefixed `INGRESS-CLIENT-DIAG`.
+- This reporter is temporary and will be removed once the cause is identified.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-02
 
 Diagnostic build to capture the actual client-side cause of the iOS-only sidebar crash, where the view shows a "400: Bad Request" page while desktop browsers work. The storage guard tried in 20260613-01 did not resolve it on a device, and that guard masked `window.localStorage`, which would hide the very behavior we now need to observe, so it has been removed. This build adds no fix; it only gathers evidence.
