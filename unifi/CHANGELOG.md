@@ -1,5 +1,16 @@
 # Changelog
 
+## 20260613-02
+
+Diagnostic build to capture the actual client-side cause of the iOS-only sidebar crash, where the view shows a "400: Bad Request" page while desktop browsers work. The storage guard tried in 20260613-01 did not resolve it on a device, and that guard masked `window.localStorage`, which would hide the very behavior we now need to observe, so it has been removed. This build adds no fix; it only gathers evidence.
+
+- The "400" page is UniFi's own internal `/manage/fatal` error screen, whose label defaults to "400". It is not an HTTP 400 from the server, and direct access on port 8443 is unaffected.
+- The internal proxy now injects a small client-side reporter ahead of the UniFi app. It records browser environment and storage capability (localStorage, sessionStorage, cookies, indexedDB, secure-context, framed state), uncaught errors, unhandled promise rejections, the SPA's own internal fatal-transition log, network call outcomes, and navigation. Each item is beaconed to the add-on Log tab, where lines are prefixed `INGRESS-CLIENT-DIAG`.
+- This lets the real exception that aborts the app on iOS be seen without a Mac, a console, or Safari Web Inspector, since it cannot be reproduced off-device.
+- The per-request header logging from 20260612-06 is retained.
+- This reporter is temporary and will be removed once the cause is identified. No functional change to the sidebar view.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-01
 
 Attempts to address the iOS-only sidebar crash where the view showed a "400: Bad Request" page while desktop browsers worked. This is a targeted change based on code investigation, not a confirmed fix; it has not yet been verified on a device.
