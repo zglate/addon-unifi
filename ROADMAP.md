@@ -1,9 +1,11 @@
 # Roadmap: inline ingress hardening
 
 Tracks hardening follow-ups for the inline UniFi sidebar (HA ingress). The
-headline feature works as of 20260613-07, verified on iPhone over plain-HTTP
-LAN and remotely via Cloudflare over HTTPS, and on desktop: sign-in holds, the
-dashboard and live data load, and the events WebSocket stays up.
+headline feature works as of 20260613-09, verified on iPhone over plain-HTTP
+LAN: sign-in holds, the dashboard and live data load, and the events WebSocket
+stays up. (20260613-08 briefly regressed sign-in by removing the Secure-cookie
+strip; -09 restored the known-good -07 cookie handling. See the correction
+below.)
 
 None of these block shipping. They are defense-in-depth and robustness items.
 
@@ -36,65 +38,51 @@ Decisive observations:
    that header through the proxy: the cookies came back with `Secure`; without
    it, no `Secure`.
 
-Consequence for the shipped 20260613-06/-07 cookie Lua: in production Supervisor
-sets X-Forwarded-Proto to match the real browser transport, so UniFi's Secure
-flag always agrees with the browser's context and the browser stores the cookie
-in both the HTTP and HTTPS cases. The Lua `Secure` strip and `SameSite=None ->
-Lax` downgrade therefore match nothing on 10.4.57 in any real path: they are a
-no-op. The genuine login-loop fix (observed in the mobile companion app,
-reproduced and validated on iOS) was the cookie TRIMMING (forwarding only
-unifises + csrf_token to keep the request under UniFi's Jetty 8 KB header
-limit), not the Secure rewrite.
+CORRECTION (2026-06-14, from real-device evidence). The paragraph that used to
+sit here concluded the -06/-07 Secure strip was a no-op, on the harness reading
+above that "Secure tracks X-Forwarded-Proto." That conclusion was WRONG and it
+shipped in -08, which removed the strip and reintroduced the login loop on a
+real iPhone over plain HTTP. -09 restored the -07 strip and fixed it. What the
+harness missed:
 
-## Validated change proposed for -08 (awaiting approval)
+- It set X-Forwarded-Proto explicitly on each leg, so it never reproduced what
+  real Supervisor sends on the companion-app plain-HTTP path. On that real path
+  UniFi's cookies come back `Secure` (the strip is needed), so X-Forwarded-Proto
+  is evidently NOT arriving as a plain `http` value the way the emulator faked.
+  UniFi's listener is HTTPS (this proxy reaches it at https://127.0.0.1:8443),
+  so absent a forwarded-proto override it has every reason to flag Secure.
+- curl/Playwright in the harness do not enforce the browser rule that a Secure
+  cookie is silently dropped on a plain-HTTP origin. That rule IS the login
+  loop, and it can only be observed on a real device.
 
-Tested in the e2e harness against UniFi 10.4.57. Net effect: scopes the session
-cookies to the ingress mount AND removes the Lua dependency.
+Load-bearing conclusion: the Secure strip is real, not a no-op. The cookie
+TRIMMING (forwarding only unifises + csrf_token under UniFi's Jetty 8 KB header
+limit) and the Secure strip are BOTH required; -06 named only trimming as the
+fix, but -08 proved the strip matters too. Any future cookie change must be
+confirmed on a physical iPhone over plain-HTTP LAN before being called done.
 
-In ingress-proxy.conf, replace the `header_filter_by_lua_block { ... }` with a
-single stock directive (nginx 1.1.15+, available on the add-on's 1.18):
+## Cookie change shipped in -08, REVERTED in -09 (do not retry without device test)
 
-```
-proxy_cookie_path / /api/hassio_ingress/;
-```
+What -08 did: replaced the `header_filter_by_lua_block { ... }` (Secure strip)
+with `proxy_cookie_path / /api/hassio_ingress/;` and dropped the two nginx
+`load_module` lines, on the harness conclusion that the strip was a no-op.
 
-In nginx.conf, drop the two `load_module` lines (ndk + lua) and the explanatory
-comment, since nothing else uses Lua.
+What happened: the strip was NOT a no-op (see the correction above). On a real
+iPhone over plain HTTP, sign-in looped back to the login page. -09 restored the
+exact -07 cookie handling (Lua Secure strip + nginx-extras + load_module lines)
+and dropped the proxy_cookie_path scoping, returning to known-good. The path
+scoping itself was harmless and unrelated to the loop; it was reverted only to
+get back to the proven state in one clean step.
 
-Harness results (both cookies, both legs):
+The harness results that justified -08 (Set-Cookie scoped on both legs, Secure
+tracking X-Forwarded-Proto, login=200, /api/self authenticated, WebSocket 101,
+edge cases passing) all still held in the harness. They were just not sufficient,
+because the harness cannot model a real browser dropping a Secure cookie over
+plain HTTP, nor the real Supervisor's forwarded-proto behaviour. That gap is the
+whole lesson: a green harness is necessary but not sufficient for a cookie
+change; the physical iPhone over plain-HTTP LAN is the only proof.
 
-```
-insecure leg:  Set-Cookie: unifises=<v>; Path=/api/hassio_ingress/; HttpOnly
-               Set-Cookie: csrf_token=<v>; Path=/api/hassio_ingress/
-secure leg:    Set-Cookie: unifises=<v>; Path=/api/hassio_ingress/; Secure; HttpOnly
-               Set-Cookie: csrf_token=<v>; Path=/api/hassio_ingress/; Secure
-```
-
-A stateful cookie-jar round-trip confirmed the scoped cookie is still sent on
-requests under the prefix (the only paths the UI uses), so sign-in is unaffected,
-while RFC 6265 path-matching keeps it off HA's own /api, /auth, /lovelace paths.
-
-Local verification done (2026-06-13). Built the real -08 image and ran the full
-e2e harness against UniFi 10.4.57 behind the HA-ingress emulator:
-
-- nginx starts and validates with no Lua module loaded.
-- Set-Cookie scoped to Path=/api/hassio_ingress/ on both legs, both cookies
-  survive, Secure still tracks X-Forwarded-Proto.
-- Provisioned an admin, then through the full ingress prefix with the scoped
-  cookie: POST /api/login = 200, GET /api/self returns the authenticated admin,
-  and the events WebSocket upgrades (101).
-- WebKit with an iPhone user agent rendered the real /manage/ login SPA inline
-  under the prefix with no readonly-property crash, no /manage/fatal, no "400";
-  the only console line is the expected 401 from the login page's own /api/self.
-- Regression edge cases pass against our nginx: a 10 KB foreign cookie jar is
-  trimmed (no 400), a 6 KB Cloudflare JWT is stripped (no 400), redirects are
-  re-prefixed, sub_filter rewrites fire, X-Frame-Options SAMEORIGIN is intact,
-  no CSP or HSTS leaks.
-
-Still owed: confirm sign-in on a real iPhone (LAN HTTP and Cloudflare HTTPS),
-since Playwright WebKit approximates but is not iOS WebKit.
-
-Fonts (handled in -08). Two separate situations, do not conflate them:
+Fonts (handled in -08, kept in -09). Two separate situations, do not conflate them:
 
 - Setup wizard fonts: FIXED. The setup bundle hardcoded webpack
   publicPath="/setup/" (absolute), so its fonts and lazy chunks were fetched
@@ -127,15 +115,19 @@ Fonts (handled in -08). Two separate situations, do not conflate them:
 - If ever revisited, the only low-risk addition is a `frame-ancestors 'self'`
   directive, which the same-origin frame already satisfies via X-Frame-Options.
 
-### 2. Scope the session cookie Path to the ingress prefix (validated)
+### 2. Scope the session cookie Path to the ingress prefix (shipped -08, reverted -09, deferred)
 
-- Status: validated in harness, ready to ship in -08 (see proposed change).
+- Status: shipped in -08, reverted in -09, deferred until device-validated.
 - Implemented with the stock `proxy_cookie_path / /api/hassio_ingress/;`
-  directive rather than Lua. Token-less prefix survives ingress token rotation.
-- Confirmed: both cookies rewritten on both legs, cookies still round-trip under
-  the prefix, Secure still tracks the transport. Does not isolate between
-  sibling add-ons (all share the /api/hassio_ingress/ prefix), which is
-  acceptable: cookie names are UniFi-unique and unifises is HttpOnly.
+  directive. Token-less prefix survives ingress token rotation. The directive
+  itself worked and was not the cause of the -08 login loop (that was the Secure
+  strip removal bundled into the same -08 change). It was reverted alongside that
+  removal only to return to the exact known-good -07 state in one step.
+- To reintroduce: add proxy_cookie_path ON ITS OWN (keep the Secure-strip Lua),
+  then confirm sign-in on a physical iPhone over plain-HTTP LAN before shipping.
+  Does not isolate between sibling add-ons (all share the /api/hassio_ingress/
+  prefix), which is acceptable: cookie names are UniFi-unique and unifises is
+  HttpOnly.
 
 ### 3. Multiple Set-Cookie handling
 
@@ -149,15 +141,16 @@ Fonts (handled in -08). Two separate situations, do not conflate them:
   Not worth it for a limit that current HA no longer has. Documented as a known
   dependency instead.
 
-### 4. Remove the no-op Secure-strip Lua (new, from evidence)
+### 4. Remove the Secure-strip Lua (ATTEMPTED in -08, REVERSED in -09: it was not a no-op)
 
-- Status: folded into the -08 change above.
-- The -06/-07 Lua `Secure` strip and `SameSite=None -> Lax` downgrade match
-  nothing on UniFi 10.4.57 in any real transport path (see evidence baseline).
-  Removing them, together with adopting proxy_cookie_path for item 2, lets the
-  add-on drop the Lua module and the two load_module lines entirely. Update the
-  CHANGELOG to correct the -06 root-cause note (the loop fix was cookie
-  trimming, not the Secure rewrite).
+- Status: closed, do not retry. The premise was wrong.
+- -08 removed the -06/-07 Lua Secure strip believing it matched nothing on
+  UniFi 10.4.57. The real iPhone proved otherwise: without the strip, the
+  Secure cookie is dropped on the plain-HTTP companion-app leg and sign-in
+  loops. -09 restored the strip, the Lua module, and the two load_module lines.
+- The strip stays. The only path to dropping Lua is a base-image bump to nginx
+  1.19.3+ (then `proxy_cookie_flags nosecure` strips Secure natively), and even
+  that must be device-validated before claiming the loop stays fixed.
 
 ## Confirmed correct (no action needed)
 
