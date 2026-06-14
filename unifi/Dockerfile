@@ -28,7 +28,7 @@ RUN \
         libcap2=1:2.32-1ubuntu0.2 \
         logrotate=3.14.0-4ubuntu3 \
         mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
-        nginx-full=1.18.0-0ubuntu1.7 \
+        nginx-extras=1.18.0-0ubuntu1.7 \
     \
     && apt-get install -y --no-install-recommends \
         temurin-25-jre \

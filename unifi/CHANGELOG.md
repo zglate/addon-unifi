@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260613-09
+
+Fixes a sign-in regression introduced in 20260613-08. On the mobile companion app over plain HTTP, signing in returned to the login page instead of reaching the dashboard. This build restores the cookie handling that was working in 20260613-07 and confirmed on iPhone.
+
+- Restores the cookie-relaxing step that lets sign-in work over a plain-HTTP connection. The 20260613-08 changelog claimed this step did nothing and removed it, but that was wrong: UniFi marks its session cookies as Secure on every response because its own listener is HTTPS, regardless of how the browser reached Home Assistant. Over a plain-HTTP companion-app connection the browser then refuses to store the cookie, so sign-in looped back to the login page. The proxy again strips the Secure flag only on the plain-HTTP leg (an HTTPS session is left untouched), exactly as 20260613-07 did. Reproduced from a real iPhone log and fixed.
+- Reverts the cookie path-scoping change from 20260613-08. It was unrelated to the regression but is dropped to return to the exact known-good 20260613-07 cookie handling; it may be reintroduced later once it can be validated on a real device.
+- The 20260613-08 setup wizard font fix, the failure-only troubleshooting log, and the first-start patch ordering are all kept.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-08
 
 Cleanup and hardening build. Sign-in behaviour is unchanged; this build scopes the session cookies more tightly, fixes the setup wizard's fonts inside the sidebar, and removes code that testing showed was doing nothing.

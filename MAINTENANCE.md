@@ -232,21 +232,39 @@ ever outweighs the value, gate the `access_log` line behind the `log_level`
 option (read it in the ingress-nginx service and template the config) so it is
 off by default and opt-in for debugging.
 
-### Cookie Path scoping (20260613-08)
+### Secure-cookie relax (the mobile companion app login loop) and a removal that backfired
 
-UniFi sets `unifises` and `csrf_token` with `Path=/`, so the browser would send
-them to every other add-on's `/api/hassio_ingress/` path and to HA's own
-endpoints on the shared origin. `ingress-proxy.conf` rescopes them with the
-stock `proxy_cookie_path / /api/hassio_ingress/;` directive. The prefix is
-token-less on purpose, so it survives ingress token rotation; the cookies still
-reach every request the UI makes, which all live under that prefix.
+UniFi marks `unifises` and `csrf_token` with `Secure` (and `SameSite=None`) on
+every response. The reason is that this proxy reaches UniFi at
+`https://127.0.0.1:8443`, so UniFi's own listener is always TLS and it flags the
+cookies `Secure` regardless of how the browser reached Home Assistant. When HA
+is reached over plain HTTP (the companion app on a LAN IP,
+`X-Forwarded-Proto: http`), the browser refuses to store a `Secure` cookie on
+that non-secure origin: `POST /api/login` returns 200 and sets the cookie, the
+browser drops it, the next `/api/self` is 401, and the UI loops back to login. A
+desktop over HTTPS keeps the cookie, which is why it only shows on the phone.
 
-No `Secure` rewrite is done. UniFi marks these cookies `Secure` only when it
-sees `X-Forwarded-Proto: https`, which Supervisor sets to match the browser's
-real transport, so the flag always agrees with the browser context. An earlier
-build (20260613-06) carried a Lua filter to strip `Secure`; local testing
-against UniFi 10.4.57 showed it never matched anything in any real transport, so
-it and the nginx Lua module (`load_module` lines) were removed in 20260613-08.
+Fix (20260613-06, restored in 20260613-09): a `header_filter_by_lua_block` in
+`ingress-proxy.conf` strips `Secure` and downgrades `SameSite=None` to `Lax`,
+but only when `X-Forwarded-Proto` is not `https`. On an HTTPS session the cookie
+is left exactly as UniFi sets it, so nothing is weakened where the traffic is
+already encrypted. This needs the nginx Lua module, so the image installs
+`nginx-extras` and `nginx.conf` carries the two `load_module` lines. nginx 1.18
+has no `proxy_cookie_flags`, so the Lua rewrite is the only option on this base.
+
+**A removal that backfired (20260613-08, do not repeat).** 20260613-08 deleted
+this Lua strip on the theory that UniFi only sets `Secure` when it sees
+`X-Forwarded-Proto: https`, so the flag would always agree with the browser and
+the strip was a no-op. That theory was wrong: UniFi sets `Secure` from its own
+HTTPS listener, not from `X-Forwarded-Proto`, so over plain HTTP the cookie
+still came back `Secure` and login looped again on the real iPhone. 20260613-08
+also rescoped the cookie `Path` to `/api/hassio_ingress/` with
+`proxy_cookie_path` (harmless defense-in-depth, but unrelated to the loop);
+20260613-09 dropped it too, to return to the exact known-good 20260613-07 cookie
+handling. Lesson: the local harness (curl) cannot reproduce a real browser
+refusing a `Secure` cookie over plain HTTP, so a cookie change that "passes"
+locally still has to be confirmed on a physical device before claiming it works.
+Path scoping may be reintroduced later, on its own, once device-validated.
 
 ## Verifying the GHCR image after a deploy
 
