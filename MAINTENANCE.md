@@ -147,6 +147,20 @@ Current literals (must match `ingress-proxy.conf` and the `init-unifi` canary):
 | angular `index.js` (API + WS root) | `apiAdapter:new i.default("/")` |
 | `swai.*.js` (React Router basename) | `baseUrl="/manage/"` |
 | setup `main.js` (axios base) | `baseURL:"/",withCredentials` |
+| setup `main.js` (webpack publicPath) | `.p="/setup/"` |
+
+The setup `publicPath` rewrite (`.p="/setup/"`) is what makes the setup
+wizard's webpack-loaded assets (fonts, lazy chunks) resolve under the ingress
+prefix instead of escaping to `/setup/static/...` at the origin root. The manage
+app needs no equivalent: its `publicPath` is empty and resolves against the
+rewritten base href.
+
+Note on manage dashboard fonts: the dashboard requests a few font files under
+`/manage/react/js/<hash>.woff2|.ttf` that UniFi does not ship in 10.4.57 (the
+hashes exist nowhere in the bundle; `react/fonts/` holds different files). Those
+404 on direct `:8443` access too, so it is pre-existing UniFi packaging, not the
+proxy. The browser falls back to system fonts. Not fixable here; do not chase it
+as a prefix-escape (the requests are correctly prefixed).
 
 **Re-deriving them** (when the canary warns): exec into the running container
 and inspect `/usr/lib/unifi/webapps/ROOT/app-unifi/`. The router basename is
@@ -163,7 +177,7 @@ strip `Origin`/`Referer` (UniFi CSRF guard rejects the proxied values), hide
 off` + re-prefix `Location` (keep redirects inside the ingress path), and the
 WebSocket `Upgrade`/`Connection` forwarding (live events).
 
-### Cookie trim (the iOS "400 Bad Request" fix)
+### Cookie trim (the mobile companion app "400 Bad Request" fix)
 
 UniFi's embedded Jetty rejects any request whose total headers exceed 8 KB with
 a branded "400 Bad Request" page. HA serves this panel same-origin, and the
@@ -197,6 +211,42 @@ UniFi needs none of them, so `ingress-proxy.conf` clears the `Cf-*` family with
 `proxy_set_header ... ""`. If a user reports a 400 only over remote access,
 suspect a new oversized header from whatever proxy fronts HA and clear it the
 same way.
+
+### Failure-only access log (20260613-08)
+
+`nginx.conf` logs an access line only for 4xx/5xx responses, via
+`map $status $loggable { ~^[23] 0; default 1; }` plus
+`access_log /dev/stderr ingress_err if=$loggable;`. Normal 2xx/3xx traffic is
+not logged, so the add-on Log tab stays quiet until something fails (a missing
+asset, a proxy error). Format is `$status $request_method $uri ... ua=...`.
+
+Two cautions. First, it is token-safe ONLY because the custom `ingress_err`
+format omits `Referer`: the request `$uri` Supervisor forwards is already
+prefix- and token-stripped, but the browser's `Referer` still carries the full
+ingress URL with the session token. Do NOT switch this to the stock `combined`
+format, or the token lands in the log. Second, the known missing manage-dashboard
+fonts (a UniFi packaging issue, see the fonts note) 404 on every dashboard load,
+so this log always carries some `/manage/react/js/*.woff2|.ttf` 404 noise; a real
+new failure is what to look for, not the steady background 404s. If the noise
+ever outweighs the value, gate the `access_log` line behind the `log_level`
+option (read it in the ingress-nginx service and template the config) so it is
+off by default and opt-in for debugging.
+
+### Cookie Path scoping (20260613-08)
+
+UniFi sets `unifises` and `csrf_token` with `Path=/`, so the browser would send
+them to every other add-on's `/api/hassio_ingress/` path and to HA's own
+endpoints on the shared origin. `ingress-proxy.conf` rescopes them with the
+stock `proxy_cookie_path / /api/hassio_ingress/;` directive. The prefix is
+token-less on purpose, so it survives ingress token rotation; the cookies still
+reach every request the UI makes, which all live under that prefix.
+
+No `Secure` rewrite is done. UniFi marks these cookies `Secure` only when it
+sees `X-Forwarded-Proto: https`, which Supervisor sets to match the browser's
+real transport, so the flag always agrees with the browser context. An earlier
+build (20260613-06) carried a Lua filter to strip `Secure`; local testing
+against UniFi 10.4.57 showed it never matched anything in any real transport, so
+it and the nginx Lua module (`load_module` lines) were removed in 20260613-08.
 
 ## Verifying the GHCR image after a deploy
 

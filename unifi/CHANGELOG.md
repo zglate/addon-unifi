@@ -1,5 +1,18 @@
 # Changelog
 
+## 20260613-08
+
+Cleanup and hardening build. Sign-in behaviour is unchanged; this build scopes the session cookies more tightly, fixes the setup wizard's fonts inside the sidebar, and removes code that testing showed was doing nothing.
+
+- The session and CSRF cookies are now scoped to the Home Assistant ingress path instead of the whole site. Before, the browser also sent them to Home Assistant's own pages and to other add-ons that share the same address. Now they are only sent to this add-on's own view, which is the only place that needs them. This is done with a standard proxy setting rather than the small script used before.
+- The first-run setup wizard now loads its fonts and other bundled assets correctly inside the sidebar. The wizard hardcoded an absolute asset path that escaped the Home Assistant ingress path, so its fonts returned 404 and the browser fell back to default fonts. The proxy now carries the ingress path into that asset base, verified in a browser. (Unrelated and not fixable here: the main dashboard references a few font files that UniFi does not ship in this version; those 404 on direct access to UniFi too and fall back to system fonts.)
+- Removes the cookie-relaxing script added in 20260613-06. Local testing against UniFi 10.4.57 showed it was never actually changing anything: UniFi only marks these cookies as Secure when the connection to Home Assistant is genuinely HTTPS, which already matches what the browser expects, so there was nothing to relax. With that script gone, the add-on no longer loads the extra scripting engine in its internal proxy at all. The real fix for the earlier login loop in the mobile companion app was the separate change that forwards only UniFi's own two cookies and drops the larger Home Assistant cookie set, which keeps the request under UniFi's internal header-size limit. That change is kept.
+- The internal proxy still suppresses UniFi's Content-Security-Policy. Testing confirmed UniFi 10.4.57 does not send one, so this currently does nothing, but it is kept as a guard: if a future UniFi version ships a policy that would block being shown inside Home Assistant, suppressing it keeps the inline view working.
+- The startup script now applies its UniFi interface patches (the upgrade-nag suppression and the sidebar compatibility check) on every start, including the very first start and a settings reset. Before, those steps sat after an early exit that the first start and reset paths take, so a brand-new install only got them on its second restart. The login and dashboard fixes were never affected; this only ensures the cosmetic nag and the compatibility warning are correct from the first boot.
+- The internal web server is now installed as a specific, smaller package built to an exact version, instead of the larger general-purpose package pinned only loosely. The previous package bundled an extra scripting engine that this add-on no longer uses (see the cookie change above), so dropping it removes about a megabyte of unused code from the image and makes every build reproducible. The proxy behaves identically; only the package footprint changed.
+- The internal proxy now writes a short log line only when a request fails (a 4xx or 5xx response), visible in the add-on Log tab. Successful requests are not logged, so the tab stays quiet in normal use, but a missing asset such as a font returning 404, or a proxy error, is now visible while troubleshooting. The session token is never written to the log. Note that the main dashboard's known missing fonts (described above, a UniFi packaging issue) will show as routine 404 lines; those are expected and can be ignored.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-07
 
 Removes the temporary on-device diagnostics now that the inline sidebar is confirmed working on iPhone, both on the local network over plain HTTP and remotely through Cloudflare over HTTPS, as well as on the desktop. Sign-in holds, the dashboard and live data load, and the live-events connection stays up. The two underlying fixes from the previous builds are kept.
@@ -11,7 +24,7 @@ Removes the temporary on-device diagnostics now that the inline sidebar is confi
 
 ## 20260613-06
 
-Fixes the login loop that appeared on iPhone once the 20260613-05 fix let the login page load. Signing in returned success, but the page bounced straight back to the login form and never reached the dashboard. The cause is that UniFi marks its session and CSRF cookies as Secure, and the Home Assistant companion app reaches this server over plain HTTP on the local network. Browsers refuse to store Secure cookies on a non-secure address, so the session cookie was set by the server but never kept by the browser, and the next request was treated as logged out. A desktop browser reaching Home Assistant over HTTPS kept the cookie, which is why this only showed up on the phone.
+Fixes the login loop that appeared in the mobile companion app once the 20260613-05 fix let the login page load. Signing in returned success, but the page bounced straight back to the login form and never reached the dashboard. The cause is that UniFi marks its session and CSRF cookies as Secure, and the Home Assistant companion app reaches this server over plain HTTP on the local network. Browsers refuse to store Secure cookies on a non-secure address, so the session cookie was set by the server but never kept by the browser, and the next request was treated as logged out. A desktop browser reaching Home Assistant over HTTPS kept the cookie, which is why this showed up in the companion app over plain HTTP but not on the desktop. Reproduced and verified on iPhone.
 
 - The internal proxy now relaxes those cookies so the browser will store them, but only when the connection to Home Assistant is actually plain HTTP. On an HTTPS connection the cookies are left exactly as UniFi sets them, so nothing is weakened where the traffic is already encrypted. Over plain HTTP the traffic is unencrypted regardless of this setting, so no protection is lost.
 - The on-device diagnostic reporter is retained for this build so the sign-in can be confirmed on a real iPhone. It will be removed in the next build once verified.
@@ -19,7 +32,7 @@ Fixes the login loop that appeared on iPhone once the 20260613-05 fix let the lo
 
 ## 20260613-05
 
-Fixes the iOS-only sidebar crash where the inline view showed a "400: Bad Request" page while desktop browsers worked. The evidence gathered in 20260613-02 through 20260613-04 located the exact cause: a latent bug in UniFi's own code that builds an object from a network response's headers. That code keeps the object only while header values are non-empty; an empty-valued response header collapses it to a text value, and the next header then tries to write a property onto that text value. iOS rejects that write as an error, which aborts the login page and shows the "400" screen. Desktop browsers never hit it because the responses they received had no empty-valued header in a position that triggered the fault.
+Fixes the mobile companion app sidebar crash where the inline view showed a "400: Bad Request" page while desktop browsers worked. The evidence gathered in 20260613-02 through 20260613-04 located the exact cause: a latent bug in UniFi's own code that builds an object from a network response's headers. That code keeps the object only while header values are non-empty; an empty-valued response header collapses it to a text value, and the next header then tries to write a property onto that text value. Strict mode rejects that write as an error in any compliant browser engine, which aborts the login page and shows the "400" screen. Desktop browsers never hit it because the responses they received had no empty-valued header in a position that triggered the fault. Reproduced and patch-verified on iPhone.
 
 - The build now applies a one-character correction to UniFi's bundled code so the header object is always preserved regardless of header values. This is the same kind of shipped-asset patch already used for remote access and the cloud-prompt suppression, and the build fails loudly if a future UniFi version changes that code so the patch can be re-derived.
 - The on-device diagnostic reporter from 20260613-02 through 20260613-04 is retained for this build so the fix can be confirmed on a real iPhone (the readonly error should no longer appear and the login page should load). It will be removed in the next build once the fix is verified.
@@ -27,7 +40,7 @@ Fixes the iOS-only sidebar crash where the inline view showed a "400: Bad Reques
 
 ## 20260613-04
 
-Diagnostic build that adds the final piece needed to locate the iOS sidebar crash. The 20260613-03 capture confirmed the failing operation and its position, but showed the bad assignment targets a value held in a local variable that the previous instrumentation could not reach. This build records the source text of the failing operation itself, which names the assignment directly, so the offending code can be located in the UniFi bundle. Still no fix; this is the last evidence-gathering step.
+Diagnostic build that adds the final piece needed to locate the mobile companion app sidebar crash. The 20260613-03 capture confirmed the failing operation and its position, but showed the bad assignment targets a value held in a local variable that the previous instrumentation could not reach. This build records the source text of the failing operation itself, which names the assignment directly, so the offending code can be located in the UniFi bundle. Still no fix; this is the last evidence-gathering step.
 
 - Records the source of the failing callback and a summary of the data it was processing, alongside the error location already captured.
 - All reporting still goes to the add-on Log tab, prefixed `INGRESS-CLIENT-DIAG`.
@@ -36,7 +49,7 @@ Diagnostic build that adds the final piece needed to locate the iOS sidebar cras
 
 ## 20260613-03
 
-Diagnostic build that extends the 20260613-02 reporter to name the exact cause of the iOS-only sidebar crash. The 20260613-02 capture proved the unauthenticated login page aborts with a JavaScript "Attempted to assign to readonly property" error inside the UniFi code, which is what produces the "400: Bad Request" screen. That property is readonly on iOS but writable on desktop, so it cannot be identified anywhere except on a real device. This build still contains no fix; it gathers the last piece of evidence.
+Diagnostic build that extends the 20260613-02 reporter to name the exact cause of the mobile companion app sidebar crash. The 20260613-02 capture proved the unauthenticated login page aborts with a JavaScript "Attempted to assign to readonly property" error inside the UniFi code, which is what produces the "400: Bad Request" screen. The fault only surfaced in the on-device app and not on the desktop, so it could only be identified on a real device. This build still contains no fix; it gathers the last piece of evidence.
 
 - Adds an interceptor that leaves normal operation untouched, but the instant that readonly error occurs it re-runs the failing operation with instrumented objects to record the exact object and property name involved, then re-raises the original error so behavior is unchanged.
 - Adds richer error detail (source file, line, column) and captures the first several console errors on the page, not only the one the app labels as fatal.
@@ -46,18 +59,18 @@ Diagnostic build that extends the 20260613-02 reporter to name the exact cause o
 
 ## 20260613-02
 
-Diagnostic build to capture the actual client-side cause of the iOS-only sidebar crash, where the view shows a "400: Bad Request" page while desktop browsers work. The storage guard tried in 20260613-01 did not resolve it on a device, and that guard masked `window.localStorage`, which would hide the very behavior we now need to observe, so it has been removed. This build adds no fix; it only gathers evidence.
+Diagnostic build to capture the actual client-side cause of the mobile companion app sidebar crash, where the view shows a "400: Bad Request" page while desktop browsers work. The storage guard tried in 20260613-01 did not resolve it on a device, and that guard masked `window.localStorage`, which would hide the very behavior we now need to observe, so it has been removed. This build adds no fix; it only gathers evidence.
 
 - The "400" page is UniFi's own internal `/manage/fatal` error screen, whose label defaults to "400". It is not an HTTP 400 from the server, and direct access on port 8443 is unaffected.
 - The internal proxy now injects a small client-side reporter ahead of the UniFi app. It records browser environment and storage capability (localStorage, sessionStorage, cookies, indexedDB, secure-context, framed state), uncaught errors, unhandled promise rejections, the SPA's own internal fatal-transition log, network call outcomes, and navigation. Each item is beaconed to the add-on Log tab, where lines are prefixed `INGRESS-CLIENT-DIAG`.
-- This lets the real exception that aborts the app on iOS be seen without a Mac, a console, or Safari Web Inspector, since it cannot be reproduced off-device.
+- This lets the real exception that aborts the app in the companion app be seen without a Mac, a console, or Safari Web Inspector, since it cannot be reproduced off-device.
 - The per-request header logging from 20260612-06 is retained.
 - This reporter is temporary and will be removed once the cause is identified. No functional change to the sidebar view.
 - No UniFi version change; still UniFi Network Application 10.4.57.
 
 ## 20260613-01
 
-Attempts to address the iOS-only sidebar crash where the view showed a "400: Bad Request" page while desktop browsers worked. This is a targeted change based on code investigation, not a confirmed fix; it has not yet been verified on a device.
+Attempts to address the mobile companion app sidebar crash where the view showed a "400: Bad Request" page while desktop browsers worked. This is a targeted change based on code investigation, not a confirmed fix; it has not yet been verified on a device.
 
 - The "400" page is UniFi's own internal `/manage/fatal` error screen, whose label defaults to "400". It is not an HTTP 400 from the server, and direct access on port 8443 is unaffected.
 - Investigation points to UniFi's startup code reading `window.localStorage` without guarding the access. Inside Home Assistant's iframe, iOS WebKit can throw on that access when cross-site tracking prevention or cookie blocking is active, which would abort startup and route to the fatal page. This throw has not been observed directly on a device, so the cause is suspected, not proven.

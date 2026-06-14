@@ -31,25 +31,11 @@ sed -i \
     '/^unifi.db.extraargs=/{h;s/=.*/=--smallfiles/};${x;/^$/{s//unifi.db.extraargs=--smallfiles/;H};x}' \
     "${properties}"
 
-# If there is no keystore yet, we are good to go
-if ! bashio::fs.file_exists "${KEYSTORE}"; then
-    # Prevent migration next time
-    touch /data/keystore_reset
-    bashio::exit.ok
-fi
+# Patch the shipped UniFi web assets (read-only static files baked into the
+# image). These must run on every start, including first start and the
+# keystore-reset migration, so they go BEFORE the keystore early exits below.
 
-# If the keystore has never been reset, we are going to do that... once
-# This is a migration path, for people that previously had a custom SSL
-# certificate.
-# It will trigger a new self-signed certificate.
-# This logic can be removed and cleaned up at a later moment
-if ! bashio::fs.file_exists "/data/keystore_reset"; then
-    rm -f -r "${KEYSTORE}"
-    touch /data/keystore_reset
-    bashio::exit.ok
-fi
-
-# Suppress the "Upgrade to UniFi OS Server" nag — irrelevant on HA addons.
+# Suppress the "Upgrade to UniFi OS Server" nag, irrelevant on HA addons.
 # The modal in 10.2.105 has a bug: it reads async storage (Promise) synchronously,
 # so the dismiss state never resolves and the modal always shows.
 # Fix: patch the initial state from !s (always true) to !1 (always false).
@@ -71,6 +57,7 @@ declare -a ingress_literals=(
     'apiAdapter:new i.default("/")'
     'baseUrl="/manage/"'
     'baseURL:"/",withCredentials'
+    '.p="/setup/"'
 )
 for literal in "${ingress_literals[@]}"; do
     if ! grep -rqF "${literal}" "${WEBAPP}" 2>/dev/null; then
@@ -79,3 +66,21 @@ for literal in "${ingress_literals[@]}"; do
             "The sidebar UI may render incorrectly; ingress-proxy.conf needs updating for this UniFi version."
     fi
 done
+
+# If there is no keystore yet, we are good to go
+if ! bashio::fs.file_exists "${KEYSTORE}"; then
+    # Prevent migration next time
+    touch /data/keystore_reset
+    bashio::exit.ok
+fi
+
+# If the keystore has never been reset, we are going to do that... once
+# This is a migration path, for people that previously had a custom SSL
+# certificate.
+# It will trigger a new self-signed certificate.
+# This logic can be removed and cleaned up at a later moment
+if ! bashio::fs.file_exists "/data/keystore_reset"; then
+    rm -f -r "${KEYSTORE}"
+    touch /data/keystore_reset
+    bashio::exit.ok
+fi

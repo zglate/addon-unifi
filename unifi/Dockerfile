@@ -28,7 +28,7 @@ RUN \
         libcap2=1:2.32-1ubuntu0.2 \
         logrotate=3.14.0-4ubuntu3 \
         mongodb-server=1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3 \
-        nginx-extras \
+        nginx-full=1.18.0-0ubuntu1.7 \
     \
     && apt-get install -y --no-install-recommends \
         temurin-25-jre \
@@ -80,18 +80,20 @@ RUN \
     && verify_bytes "${X86_64_LIB}"  $((0x1157D7)) 5 "9090909090" "x86_64 post-patch site 2" \
     \
     # Patch base.js: fix a latent bug in UniFi's fetch-response adapter that
-    # crashes the Angular login route on iOS WebKit (the inline ingress UI shows
-    # a "400" page on iPhone while desktop works). The adapter builds a header
-    # map with:
+    # crashes the Angular login route in the mobile companion app (the inline
+    # ingress UI shows a "400" page while desktop works). The adapter builds a
+    # header map with:
     #   Array.from(resp.headers).reduce(function(e,t){return(e[t[0]]=t[1])&&e},{})
     # The "&&e" returns the accumulator only when the header value is truthy. An
     # empty-valued response header collapses the accumulator to "", so the next
-    # header assignment writes to a string primitive, which strict mode on iOS
-    # WebKit rejects with "Attempted to assign to readonly property." That fails
-    # the route resolve and lands the SPA on /manage/fatal ("400"). Desktop
-    # WebKit never hit it because the responses it saw had no empty-valued header
-    # in a non-final position. Switching "&&" to a comma makes the reduce always
-    # return the accumulator object regardless of header values.
+    # header assignment writes to a string primitive, which strict mode rejects
+    # with "Attempted to assign to readonly property" in any compliant JS engine.
+    # That fails the route resolve and lands the SPA on /manage/fatal ("400").
+    # Reproduced and patch-verified on iOS WebKit; desktop never hit it because
+    # the responses it saw had no empty-valued header in a non-final position.
+    # The bug is engine-agnostic, so this also covers the Android companion app's
+    # WebView if it receives the same response. Switching "&&" to a comma makes
+    # the reduce always return the accumulator object regardless of header values.
     # The bundle filename carries a per-release hash but this callback is a
     # content literal that survives renames; the count check fails the build
     # loudly if UniFi ever changes the code so the patch can be re-derived.
