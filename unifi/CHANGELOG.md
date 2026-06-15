@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260615-02
+
+Internal hardening only; no change to how the add-on behaves day to day.
+
+- The startup check that warns if a UniFi update moves the sidebar's internal paths now runs inside the sidebar proxy itself instead of in the shared startup step, keeping it fully clear of the path that brings up the controller so it can never affect normal startup.
+- Marked the sidebar proxy's startup script executable to match the other services, removing a latent inconsistency.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260615-01
 
 Fixes sign-in still looping in Firefox over a plain-HTTP address (e.g. `http://<ip>:8123`), even after 20260613-10. The cause was a cookie name clash, not the Secure flag.
