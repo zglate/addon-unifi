@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260613-10
+
+Fixes sign-in failing in some browsers (Firefox in particular) when Home Assistant is reached over a plain-HTTP address such as `http://<ip>:8123`. The login would either loop back to the login page or never complete.
+
+- The internal proxy now always relaxes UniFi's session cookies so the browser will keep them over plain HTTP, instead of trying to decide when to do so. The previous build only relaxed them when it thought the connection was plain HTTP, using a signal (the forwarded-protocol header) that Home Assistant does not reliably set: when Home Assistant has an HTTPS address configured, that signal can read "secure" even though your browser is actually on a plain-HTTP address, so the cookie stayed locked to HTTPS and the browser refused to keep it. Apple's in-app browser tolerated this; Firefox correctly did not, which is why it showed up there. Relaxing unconditionally is the same thing the standard nginx cookie setting does, and it matches how other Home Assistant add-ons behave.
+- Trade-off: the session cookie is no longer marked HTTPS-only even on HTTPS sessions. For a self-hosted, Home-Assistant-authenticated panel this is the accepted norm, and over plain HTTP the cookie was already in the clear regardless.
+- The failure-only troubleshooting log is kept for now so this can be confirmed on a real device; it will be removed in a later build.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-09
 
 Fixes a sign-in regression introduced in 20260613-08. On the mobile companion app over plain HTTP, signing in returned to the login page instead of reaching the dashboard. This build restores the cookie handling that was working in 20260613-07 and confirmed on iPhone.

@@ -1,11 +1,12 @@
 # Roadmap: inline ingress hardening
 
 Tracks hardening follow-ups for the inline UniFi sidebar (HA ingress). The
-headline feature works as of 20260613-09, verified on iPhone over plain-HTTP
-LAN: sign-in holds, the dashboard and live data load, and the events WebSocket
-stays up. (20260613-08 briefly regressed sign-in by removing the Secure-cookie
-strip; -09 restored the known-good -07 cookie handling. See the correction
-below.)
+headline feature works as of 20260613-10: sign-in holds on iPhone and on desktop
+Firefox over plain-HTTP LAN, the dashboard and live data load, and the events
+WebSocket stays up. (20260613-08 regressed sign-in by removing the Secure-cookie
+strip; -09 restored it but kept an X-Forwarded-Proto guard that still failed
+Firefox over plain HTTP; -10 made the strip unconditional. See the correction
+below and item 5.)
 
 None of these block shipping. They are defense-in-depth and robustness items.
 
@@ -150,7 +151,49 @@ Fonts (handled in -08, kept in -09). Two separate situations, do not conflate th
   loops. -09 restored the strip, the Lua module, and the two load_module lines.
 - The strip stays. The only path to dropping Lua is a base-image bump to nginx
   1.19.3+ (then `proxy_cookie_flags nosecure` strips Secure natively), and even
-  that must be device-validated before claiming the loop stays fixed.
+  that must be device-validated before claiming the loop stays fixed. See item 6.
+
+### 5. Make the Secure strip unconditional (DONE in -10)
+
+- Status: shipped in 20260613-10.
+- -09 restored the strip but kept the `-06`/`-07` guard `if http_x_forwarded_proto
+  ~= "https"`. That guard assumes X-Forwarded-Proto reflects the browser's real
+  transport. It does not: Supervisor does not set X-Forwarded-Proto at all (only
+  X-Forwarded-For; confirmed in supervisor/api/ingress.py), so the value comes
+  from whatever fronts HA and can read `https` while the browser is on a
+  plain-HTTP origin. On `http://<ip>:8123` the guard skipped the strip, the
+  cookie stayed `Secure`, and Firefox (strict about Secure-over-HTTP, unlike
+  Apple's WebView) looped on login. Confirmed via the Firefox cookie inspector
+  (unifises showed `Secure: true` on a plain-HTTP origin).
+- Fix: drop the guard, strip `Secure` unconditionally (keep the SameSite None ->
+  Lax downgrade). The ingress edge is always plain HTTP, so this is always
+  correct; an HTTPS-origin browser still works with a non-Secure cookie. This is
+  the Lua equivalent of `proxy_cookie_flags ~ nosecure;` and matches peer ingress
+  add-ons (whose cookies are not Secure). Trade-off: cookie loses the Secure flag
+  on HTTPS sessions too; accepted for a self-hosted HA-authenticated panel.
+
+### 6. nginx base bump: replace the Secure-strip Lua with proxy_cookie_flags (future)
+
+- Status: open, separate project. Not blocking; the Lua works.
+- Today the add-on builds FROM ghcr.io/hassio-addons/ubuntu-base:8.2.0, which is
+  Ubuntu 20.04 focal and ships only nginx 1.18 (no proxy_cookie_flags). Focal
+  left standard support in April 2025 (now ESM), so this bump is coming anyway.
+- When the base moves to an image with nginx >= 1.19.3 (newer ubuntu-base on
+  jammy/noble, or an Alpine base like the nginx-proxy-manager / tasmoadmin
+  add-ons now use, nginx 1.24/1.26), do this:
+  - In ingress-proxy.conf, delete the `header_filter_by_lua_block` and add
+    `proxy_cookie_flags ~ nosecure;` (the idiomatic one-liner; item 5's behavior).
+    If SameSite=None still needs downgrading, `proxy_cookie_flags` does not do
+    that, so confirm whether it is still required, or keep a minimal Lua for it.
+  - In nginx.conf, drop the two `load_module` lines (ndk + lua).
+  - In the Dockerfile, switch `nginx-extras` back to a smaller variant (Lua no
+    longer needed); `nginx-full` (or the Alpine `nginx`) provides http_sub_module.
+- This is a FULL OS migration, not an nginx swap: every pinned apt package moves
+  at once (mongodb-server 3.6 may not exist on noble; temurin, libcap, binutils,
+  logrotate), and the WebRTC .so patch offsets + md5 canary and Java/Mongo
+  compatibility all need re-validation. Do it deliberately with its own test
+  pass, not bundled into an unrelated fix. Device-validate sign-in (iPhone +
+  Firefox over plain-HTTP LAN) before claiming the loop stays fixed.
 
 ## Confirmed correct (no action needed)
 

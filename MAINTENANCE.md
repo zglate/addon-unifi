@@ -244,27 +244,45 @@ that non-secure origin: `POST /api/login` returns 200 and sets the cookie, the
 browser drops it, the next `/api/self` is 401, and the UI loops back to login. A
 desktop over HTTPS keeps the cookie, which is why it only shows on the phone.
 
-Fix (20260613-06, restored in 20260613-09): a `header_filter_by_lua_block` in
-`ingress-proxy.conf` strips `Secure` and downgrades `SameSite=None` to `Lax`,
-but only when `X-Forwarded-Proto` is not `https`. On an HTTPS session the cookie
-is left exactly as UniFi sets it, so nothing is weakened where the traffic is
-already encrypted. This needs the nginx Lua module, so the image installs
-`nginx-extras` and `nginx.conf` carries the two `load_module` lines. nginx 1.18
-has no `proxy_cookie_flags`, so the Lua rewrite is the only option on this base.
+Fix (current, since 20260613-10): a `header_filter_by_lua_block` in
+`ingress-proxy.conf` strips `Secure` from every `Set-Cookie` and downgrades
+`SameSite=None` to `Lax` (None without Secure is rejected), **unconditionally**.
+This needs the nginx Lua module, so the image installs `nginx-extras` and
+`nginx.conf` carries the two `load_module` lines.
 
-**A removal that backfired (20260613-08, do not repeat).** 20260613-08 deleted
-this Lua strip on the theory that UniFi only sets `Secure` when it sees
-`X-Forwarded-Proto: https`, so the flag would always agree with the browser and
-the strip was a no-op. That theory was wrong: UniFi sets `Secure` from its own
-HTTPS listener, not from `X-Forwarded-Proto`, so over plain HTTP the cookie
-still came back `Secure` and login looped again on the real iPhone. 20260613-08
-also rescoped the cookie `Path` to `/api/hassio_ingress/` with
-`proxy_cookie_path` (harmless defense-in-depth, but unrelated to the loop);
-20260613-09 dropped it too, to return to the exact known-good 20260613-07 cookie
-handling. Lesson: the local harness (curl) cannot reproduce a real browser
-refusing a `Secure` cookie over plain HTTP, so a cookie change that "passes"
-locally still has to be confirmed on a physical device before claiming it works.
-Path scoping may be reintroduced later, on its own, once device-validated.
+This is exactly what `proxy_cookie_flags ~ nosecure;` does. That directive needs
+nginx >= 1.19.3 and the focal base ships 1.18, so the Lua does it instead. **When
+the base image moves to nginx >= 1.19.3, delete the Lua block and the two
+`load_module` lines and replace with `proxy_cookie_flags ~ nosecure;`** (see the
+"nginx base bump" item in ROADMAP.md). The Lua and the directive are equivalent;
+the directive is just the idiomatic one-liner once the version supports it.
+
+**Do NOT gate the strip on `X-Forwarded-Proto`.** Supervisor does not set that
+header (it only adds `X-Forwarded-For`; confirmed in `supervisor/api/ingress.py`),
+so any value reaching us comes from whatever fronts HA and can read `https` even
+when the browser is on a plain-HTTP origin. The ingress edge is always plain
+HTTP, so the strip is always correct; an HTTPS-origin browser still works with a
+non-Secure cookie. This unconditional form matches peer ingress add-ons, whose
+cookies are not `Secure` either (most avoid the problem entirely by proxying an
+HTTP backend; UniFi is HTTPS-only on 8443, so we must strip).
+
+**Two regressions this section exists to prevent (do not repeat):**
+- 20260613-08 deleted the strip on the theory that UniFi only sets `Secure` when
+  it sees `X-Forwarded-Proto: https`. Wrong: UniFi sets `Secure` from its own
+  HTTPS listener, so over plain HTTP the cookie stayed `Secure` and login looped
+  on the real iPhone. 20260613-09 restored the strip.
+- 20260613-09 restored the strip but kept the `X-Forwarded-Proto != https` guard
+  from -06/-07. That guard fails when HA reports `https` while the browser is on
+  a plain-HTTP origin: the strip did not fire, `Secure` stayed, and Firefox
+  (which, unlike Apple's WebView, strictly refuses Secure cookies over HTTP)
+  looped on `http://<ip>:8123`. 20260613-10 removed the guard (unconditional).
+
+Lesson: the local harness (curl) cannot reproduce a real browser refusing a
+`Secure` cookie over plain HTTP, nor the forwarded-proto a real HA front-end
+sends, so a cookie change that "passes" locally must still be confirmed on a
+physical device (and ideally a strict browser like Firefox) before claiming it
+works. 20260613-08 also briefly added `proxy_cookie_path` Path scoping
+(harmless, unrelated to either loop); dropped in -09 and not reinstated.
 
 ## Verifying the GHCR image after a deploy
 
