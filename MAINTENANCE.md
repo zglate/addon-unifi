@@ -284,6 +284,52 @@ physical device (and ideally a strict browser like Firefox) before claiming it
 works. 20260613-08 also briefly added `proxy_cookie_path` Path scoping
 (harmless, unrelated to either loop); dropped in -09 and not reinstated.
 
+### Cookie namespacing (the Firefox Secure-cookie collision, since 20260615-01)
+
+20260613-10 made the strip unconditional and confirmed (via a Firefox HAR) that
+`Set-Cookie` arrives with no `Secure` flag, yet Firefox login still looped. The
+browser console gave the exact reason:
+
+```
+Cookie "unifises" has been rejected because there is an existing "secure" cookie.
+Cookie "csrf_token" has been rejected because there is an existing "secure" cookie.
+```
+
+Root cause is a cookie **name collision**, not the flag. UniFi serves its own UI
+over HTTPS on 8443; reaching that directly (the "Open Web UI" button,
+`https://<ip>:8443`) makes UniFi set `unifises` / `csrf_token` as `Secure` for
+that host. **Cookies ignore port**, so those Secure cookies share the jar the
+plain-HTTP ingress on 8123 uses. The "leave secure cookies alone" rule
+(RFC 6265bis) forbids a non-secure (http) origin from overwriting an existing
+`Secure` cookie of the same name, so the ingress login cookies were rejected and
+the old Secure ones were never sent over http. iOS WebView is lenient here;
+Firefox enforces it.
+
+Path scoping does **not** dodge this: the 8443 cookie sits at `Path=/`, which
+prefix-matches every deeper path, so a path-scoped ingress cookie still counts as
+the same cookie and is still rejected.
+
+Fix: **namespace the ingress cookies** so their names never collide.
+- Outbound, the `header_filter_by_lua_block` renames `unifises` ->
+  `unifises_ing` and `csrf_token` -> `csrf_token_ing` (alongside the Secure
+  strip).
+- Inbound, the `map` blocks in `nginx.conf` match the `_ing` names and re-emit
+  the original names in the `Cookie` header, so UniFi sees what it expects.
+- The SPA's JS reads `csrf_token` from `document.cookie` to set `X-Csrf-Token`;
+  it can no longer find the renamed cookie, so `ingress-proxy.conf` injects
+  `X-Csrf-Token` from `$unifi_csrf_value` (the `_ing` csrf cookie value).
+
+This keeps plain-HTTP ingress working and lets the inline sidebar and the direct
+8443 UI be used at the same time. It is also consistent on HTTPS (a non-Secure
+`_ing` cookie is accepted over HTTPS too). The robust alternative considered and
+not taken was serving HA over HTTPS (which makes the ingress a secure context and
+removes the collision with no add-on change); namespacing was chosen so the
+fork's plain-HTTP inline feature works without the user changing their HA setup.
+
+If a future UniFi version renames the SPA's csrf-cookie read or adds another
+auth cookie, the rename pairs above (Lua + both maps) and the injected header are
+the places to update; symptom is a login or CSRF failure right after upgrade.
+
 ## Verifying the GHCR image after a deploy
 
 Especially if a deploy ran twice for the same tag (the race in step 8), confirm
@@ -303,6 +349,15 @@ docker buildx imagetools inspect ghcr.io/zglate/unifi/aarch64:<ADDON_VERSION>
 
 - Date-based: `YYYYMMDD-NN` (e.g., `20260409-03`)
 - The date is when the build was made, NN is the build number for that day
+- **CHECK TODAY'S ACTUAL DATE before you stamp a build.** The date is typed
+  by hand, nothing derives it, so it silently goes stale the moment you reuse
+  the previous build's number on a later day. Confirm the real current date
+  first (the session header / `currentDate` states it; if unsure, run `date`),
+  then build the version from it. When the date rolls to a new day, reset NN
+  to `01`; NN only increments for multiple builds within the same day.
+- This has been gotten wrong: builds kept the `20260613` stamp while the real
+  date had already moved to `20260615`. If today is not the date in the last
+  release tag, the next build's date must move forward, not just NN.
 - This decouples the addon version from the UniFi version, which matters
   when you need to downgrade UniFi but still have HA see it as an "update"
 - **Release tag = addon version, title = UniFi version.** Tag `v20260518-01`,

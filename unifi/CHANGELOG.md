@@ -1,5 +1,14 @@
 # Changelog
 
+## 20260615-01
+
+Fixes sign-in still looping in Firefox over a plain-HTTP address, even after 20260613-10. The cause turned out to be a cookie name clash, not the Secure flag.
+
+- If you have ever opened UniFi's own web UI directly over HTTPS (the "Open Web UI" button, `https://<ip>:8443`), your browser stored UniFi's `unifises` and `csrf_token` cookies marked HTTPS-only for that address. Browsers ignore the port, so those HTTPS-only cookies sit on the same address the inline sidebar uses over plain HTTP. A browser will not let a plain-HTTP page overwrite an existing HTTPS-only cookie of the same name, so the sidebar's freshly issued login cookies were thrown away and sign-in looped. Firefox stated this outright in its console; Safari and the mobile app were more lenient, which is why it only showed there.
+- The internal proxy now gives the sidebar's cookies their own distinct names on the wire, so they no longer clash with the ones from the direct HTTPS UI. It renames them back to what UniFi expects before each request reaches UniFi, and supplies the matching anti-forgery token itself, so nothing UniFi sees changes. You can keep using both the inline sidebar and the direct UniFi UI at the same time without one breaking the other.
+- This also makes behaviour consistent whether you reach Home Assistant over plain HTTP or HTTPS.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260613-10
 
 Fixes sign-in failing in some browsers (Firefox in particular) when Home Assistant is reached over a plain-HTTP address such as `http://<ip>:8123`. The login would either loop back to the login page or never complete.
