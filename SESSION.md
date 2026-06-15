@@ -19,7 +19,7 @@ faster than the upstream community addon which has a slow merge cadence.
 ## GitHub account
 
 - Fork is on the `zglate` GitHub account (personal, not work)
-- All commits and labels should use `zglate`, never `zglate` / `zglate`
+- All commits and labels should use `zglate`, never any other logged-in account
 - To check: `gh auth status`
 - To switch: `gh auth switch --user zglate`
 - Scopes needed: `repo`, `workflow`, `read:packages`, `write:packages`, `delete:packages`
@@ -123,7 +123,7 @@ SSH key is authorized on the HA box (Advanced SSH & Web Terminal addon).
 - Don't change a long-standing convention without first finding the load-bearing constraint that made someone choose it. "More readable" isn't a sufficient reason on its own.
 - Don't construct multi-line commit messages with `$(printf '\n')` in single-line bash — the result is one mashed line. Use `git commit -F - <<'EOF'` heredoc.
 - Don't use hassio-addons shared workflows (need DISPATCH_TOKEN)
-- Don't switch gh auth back to zglate without being asked
+- Don't switch gh auth away from `zglate` (to another logged-in account) without being asked
 - Don't trust upstream DOCS.md claims without verifying
 - Don't use em dashes in any output (code, docs, commit messages, PR bodies, chat)
 - Don't derive binary offsets from an extracted file without first verifying its md5 against the source

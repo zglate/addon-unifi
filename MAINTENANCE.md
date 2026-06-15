@@ -448,9 +448,9 @@ gh auth login -h github.com -w -s repo,workflow,read:packages,write:packages
   STALE scope lists and sent a whole session chasing a non-problem. If the
   scopes look wrong, re-run the `gh auth login` above and approve every scope
   on the consent page before re-checking with `GH_DEBUG=1`.
-- Two accounts are usually logged in (`zglate`, `zglate`). Confirm `zglate`
-  is active (`gh auth status` shows "Active account: true"). Never switch to
-  `zglate` for this fork.
+- More than one account may be logged in to `gh`. Confirm the fork account
+  (`zglate`) is active (`gh auth status` shows "Active account: true"). Never
+  operate this fork under any other logged-in account.
 
 **Creating a release when `gh release create` complains about the `workflow`
 scope:** that's a client-side gh check, not an API requirement. Create the
