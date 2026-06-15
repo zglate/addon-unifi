@@ -24,10 +24,12 @@ Use the **Show in sidebar** toggle on the addon's Info tab to add or hide the
 "UniFi" entry; the "Open Web UI" button opens the same inline view. This also
 makes the UI reachable through Home Assistant Cloud (Nabu Casa) without
 exposing port 8443, and it works in the Home Assistant mobile companion app
-(validated on iOS; Android uses the same code path). In the mobile app UniFi
-shows a dismissable "browser is not supported" notice because it does not
-recognize the in-app browser; this is cosmetic and the interface works. See the
-addon Documentation tab for details and caveats.
+(validated on iOS; Android uses the same code path). It also works when Home
+Assistant is reached over a plain-HTTP LAN address (e.g. `http://<ip>:8123`),
+validated in desktop Firefox and on iOS. In the mobile app UniFi shows a
+dismissable "browser is not supported" notice because it does not recognize the
+in-app browser; this is cosmetic and the interface works. See the addon
+Documentation tab for details and caveats.
 
 ## Migrating from the community addon
 
