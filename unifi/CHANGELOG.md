@@ -1,5 +1,13 @@
 # Changelog
 
+## 20260615-03
+
+Internal hardening only; no change to how the add-on behaves day to day.
+
+- The build now checks the downloaded UniFi package against Ubiquiti's published SHA256 checksum before installing it, so the build stops with a clear error if the download is ever tampered with, intercepted, or incomplete instead of silently building from a bad file.
+- The startup check that warns if a UniFi update moves the sidebar's internal paths now reads the exact list of paths to watch straight from the proxy's own configuration, instead of keeping a second copy by hand that could fall out of step. This closes a gap where three of the setup-screen paths were not being watched, so a future UniFi change to those could have broken the setup screen in the sidebar without any warning.
+- No UniFi version change; still UniFi Network Application 10.4.57.
+
 ## 20260615-02
 
 Internal hardening only; no change to how the add-on behaves day to day.

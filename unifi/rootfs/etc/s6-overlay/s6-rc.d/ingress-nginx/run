@@ -9,24 +9,27 @@ bashio::log.info \
     'Starting ingress proxy: the UniFi UI is available in the Home Assistant sidebar.'
 ln -sf /etc/nginx/ingress-proxy.conf /etc/nginx/active-server.conf
 
-# Ingress base-path canary. This proxy rewrites a small set of content literals
-# in the UniFi bundles so the SPA works behind HA's path prefix. The literals
-# are stable across bundle-hash renames but a new UniFi version could change
-# them. If any is missing, warn loudly: the sidebar UI will break, but
-# direct-port access on 8443 is unaffected.
+# Ingress base-path canary. The proxy rewrites a set of content literals in the
+# UniFi bundles so the SPA works behind HA's path prefix. The literals are stable
+# across bundle-hash renames, but a new UniFi version could change them. To keep
+# this check honest, the watched set is derived from ingress-proxy.conf itself
+# (every sub_filter match string), not a hand-maintained copy that could silently
+# drift out of sync with the actual rewrites. If a rewrite target is missing from
+# the bundles, warn loudly: the sidebar UI may break, but direct-port access on
+# 8443 is unaffected.
 readonly WEBAPP="/usr/lib/unifi/webapps/ROOT/app-unifi"
-declare -a ingress_literals=(
-    '<base href="/manage/">'
-    'BASE_HREF:"/manage/"'
-    'apiAdapter:new i.default("/")'
-    'baseUrl="/manage/"'
-    'baseURL:"/",withCredentials'
-    '.p="/setup/"'
+readonly PROXY_CONF="/etc/nginx/ingress-proxy.conf"
+mapfile -t ingress_literals < <(
+    sed -nE "s/^[[:space:]]*sub_filter[[:space:]]+'([^']+)'.*/\1/p" "${PROXY_CONF}"
 )
+if [ "${#ingress_literals[@]}" -eq 0 ]; then
+    bashio::log.warning \
+        "Ingress canary: no sub_filter rules found in ${PROXY_CONF}; base-path rewrites cannot be verified."
+fi
 for literal in "${ingress_literals[@]}"; do
     if ! grep -rqF "${literal}" "${WEBAPP}" 2>/dev/null; then
         bashio::log.warning \
-            "Ingress canary: literal not found in UniFi bundles -> [${literal}]." \
+            "Ingress canary: rewrite target not found in UniFi bundles -> [${literal}]." \
             "The sidebar UI may render incorrectly; ingress-proxy.conf needs updating for this UniFi version."
     fi
 done
