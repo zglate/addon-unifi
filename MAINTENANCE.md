@@ -507,6 +507,33 @@ gh auth login -h github.com -w -s repo,workflow,read:packages,write:packages
   (`zglate`) is active (`gh auth status` shows "Active account: true"). Never
   operate this fork under any other logged-in account.
 
+### Commit identity is separate from the gh account — set it per repo
+
+`gh auth switch` changes only the **API/push credential**, NOT the git commit
+author. The commit author/committer come from `git config user.name`/`user.email`.
+If the machine's global git identity is a different (e.g. work) identity, a commit
+will be authored under that identity even while `gh` is `zglate` — and pushing it
+leaks that name/email onto public commits.
+
+- Every working copy of this fork must carry repo-local identity:
+  ```
+  git config user.name  "zglate"
+  git config user.email "160789597+zglate@users.noreply.github.com"
+  ```
+- **Fresh clones inherit the global identity** — set the two lines above before
+  the first commit in any new or temporary clone.
+- **Before every push/release, verify the author, not just the gh account:**
+  ```
+  git log -1 --format='%an <%ae> | %cn <%ce>'
+  ```
+  It must show `zglate`. If not, fix with `git commit --amend --reset-author
+  --no-edit` before pushing.
+- This is a pre-push gate because it cannot be cleanly undone afterward: a
+  misauthored commit pushed into the fork network stays reachable by SHA, and
+  GitHub's Private Information Removal policy does NOT cover names/email addresses
+  in commit metadata (confirmed 2026-06-25). Rewrite + force-push fixes live refs
+  but leaves the orphaned commit reachable.
+
 **Creating a release when `gh release create` complains about the `workflow`
 scope:** that's a client-side gh check, not an API requirement. Create the
 release straight through the REST API (needs only `repo`):
