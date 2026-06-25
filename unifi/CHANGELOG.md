@@ -1,5 +1,31 @@
 # Changelog
 
+## 20260625-01
+
+UniFi Network Application 10.5.54 adds a 24-hour client activity timeline and a set of proactive network-protection and recovery features, along with a broad batch of improvements and bugfixes.
+
+**Client Observability**
+
+Gain complete visibility into client behavior with a 24-hour activity timeline that correlates connectivity, roaming, application usage, and network health into a single troubleshooting experience.
+
+- Review a 24-hour time machine of client activity and events.
+- Track connection quality with signal strength, TX retries, latency, and packet loss.
+- Analyze roaming history and access-point performance affecting the client experience.
+
+**Safe Ops**
+
+Proactive protection and recovery mechanisms designed to reduce outages, maintain connectivity, and improve operational resilience across UniFi deployments.
+
+- Added Auto STP Edge that automatically sets ports connected to end devices as Edge.
+- Added Link Debounce controls to reduce link flapping caused by brief interruptions (requires USW 7.5.4 or newer).
+- Added Test & Confirm safeguards that automatically roll back changes if device connectivity is lost after configuration updates (requires UniFi OS 5.1.12 or newer).
+- Added Data Plane Protection.
+- Enhanced Device Supervisor with global Auto-Recovery controls, including configurable health monitoring and recovery thresholds.
+
+_40 improvements and 19 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-5-54/fdfe1b15-091c-410b-9cb9-3de3acfc1255)
+
 ## 20260615-03
 
 Internal hardening only; no change to how the add-on behaves day to day.
