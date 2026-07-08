@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Upstream community add-on
+    url: https://github.com/hassio-addons/addon-unifi/issues
+    about: For problems that are not specific to this fork's faster cadence or inline-sidebar feature, the upstream community add-on is the better place to report.

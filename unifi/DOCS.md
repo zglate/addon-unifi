@@ -61,6 +61,13 @@ Assistant Cloud. In the mobile app UniFi shows a dismissable "the browser you
 are using is not supported" notice, because it does not recognize the app's
 in-app browser. This is cosmetic; the interface works. Dismiss it with the X.
 
+For the first minute or two after the add-on updates, the sidebar view may show
+a browser framing error (in Firefox, "another site has embedded this content").
+While the controller boots it serves a startup splash page that sends
+`X-Frame-Options: SAMEORIGIN`, which the ingress proxy does not strip, so the
+browser refuses to frame it. This clears on its own once UniFi finishes
+starting. The direct interface on port 8443 is never affected.
+
 ### Option: `log_level`
 
 The `log_level` option controls the level of log output by the addon and can

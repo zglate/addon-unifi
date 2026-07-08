@@ -1,5 +1,12 @@
 # Roadmap: inline ingress hardening
 
+> **Historical note (last updated 2026-06-13).** This document captures the
+> hardening follow-ups identified when the inline-sidebar feature first
+> stabilized (addon `20260613-10`, UniFi 10.4.57). The feature has shipped and
+> been through several UniFi releases since; treat the items below as a
+> point-in-time backlog, not a live status board. Version and evidence
+> references are as of that date.
+
 Tracks hardening follow-ups for the inline UniFi sidebar (HA ingress). The
 headline feature works as of 20260613-10: sign-in holds on iPhone and on desktop
 Firefox over plain-HTTP LAN, the dashboard and live data load, and the events

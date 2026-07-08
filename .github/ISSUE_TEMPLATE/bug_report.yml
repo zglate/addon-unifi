@@ -1,0 +1,80 @@
+name: Bug report
+description: Report a problem with the Fast Track fork of the UniFi Network Application add-on
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report.
+
+        **Before you start:** if the problem also happens on the upstream
+        [community add-on](https://github.com/hassio-addons/addon-unifi), it is
+        better reported there — this fork only adds a faster release cadence and
+        the inline-sidebar (ingress) feature on top of their work.
+  - type: input
+    id: addon-version
+    attributes:
+      label: Add-on version
+      description: Shown on the add-on's Info tab (format YYYYMMDD-NN, e.g. 20260625-01).
+      placeholder: "20260625-01"
+    validations:
+      required: true
+  - type: input
+    id: unifi-version
+    attributes:
+      label: UniFi Network Application version
+      description: Shown in the UniFi UI under Settings, or in the add-on log at startup.
+      placeholder: "10.5.54"
+    validations:
+      required: true
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant version
+      description: Settings > About (Core / Supervisor / OS).
+    validations:
+      required: true
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Architecture
+      options:
+        - aarch64
+        - amd64
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: access-path
+    attributes:
+      label: How were you accessing UniFi when it broke?
+      options:
+        - Inline sidebar (ingress)
+        - Direct / Open Web UI on port 8443
+        - Through Home Assistant Cloud (Nabu Casa)
+        - Mobile companion app
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead? Steps to reproduce if you have them.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Add-on log
+      description: |
+        Relevant lines from the add-on log (Settings > Add-ons > this add-on > Log).
+        Please remove anything sensitive (public IPs, tokens, credentials).
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I confirmed the direct interface on port 8443 shows the same problem (if this is a sidebar/ingress issue).
+        - label: I have removed sensitive information from any logs I pasted above.
