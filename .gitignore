@@ -1,3 +1,6 @@
 .venv/
 .claude/
 *.local.md
+investigations/
+# Private session-handoff notes (contains local infra details; not project docs)
+SESSION.md

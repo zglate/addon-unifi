@@ -13,6 +13,12 @@ can pick this up without repeating the mistakes from the initial build.
 
    If it doesn't return 200, the version isn't available yet.
 
+   While you're here, **record the release's published SHA256** for
+   `unifi_sysvinit_all.deb` from the community.ui.com release page (Downloads /
+   checksums section) — you paste it into the Dockerfile in step 4. Do NOT compute
+   it from your own download; the whole point is to verify against Ubiquiti's
+   published value, not a hash of whatever you happened to fetch.
+
 2. **Check the UniFi release notes for dependency changes.** If they bump the
    Java requirement (like the 10.2.x move to Java 25), the Dockerfile needs
    updating too. Check the upstream repo's open PRs for hints.
@@ -25,7 +31,13 @@ can pick this up without repeating the mistakes from the initial build.
    the WebRTC library" below). Otherwise, no action needed.
 
 4. **Edit four files:**
-   - `unifi/Dockerfile` - change the version in the download URL
+   - `unifi/Dockerfile` - **two changes that must move together:**
+     1. change the version in the download URL, and
+     2. update the hardcoded SHA256 on the `sha256sum --check` line to the
+        published checksum you recorded in step 1. **If you change the URL but not
+        the checksum, the build fails at `sha256sum --check` even though the URL is
+        correct** — the error looks like a download problem but is a stale hash.
+        (This is separate from the WebRTC `md5sum --check` canary in step 3.)
    - `unifi/config.yaml` - change the `version` field (addon date version)
    - `unifi/CHANGELOG.md` - add a new version entry at the top
    - `README.md` - update the "Current version" line to the new UniFi version
