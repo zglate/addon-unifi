@@ -19,6 +19,37 @@ can pick this up without repeating the mistakes from the initial build.
    it from your own download; the whole point is to verify against Ubiquiti's
    published value, not a hash of whatever you happened to fetch.
 
+   **Getting the published SHA256 requires a human in a real browser.** Every
+   automated path was tried on 2026-07-13 and fails — don't re-spend a session
+   rediscovering this:
+
+   - The release page is a JS SPA; curl/WebFetch get an empty "Loading Ubiquiti
+     Community" shell. The checksums render client-side only.
+   - The public GraphQL API behind the page (`POST https://community.svc.ui.com/`
+     with `content-type: application/json`) works for metadata and even has the
+     field — but it's **empty for every release**, old and new:
+     ```
+     {"query":"query { release(id: \"<UUID-from-the-release-URL>\") { version links { url checksums { sha256 md5 } } } }"}
+     ```
+     returns `"checksums":{"sha256":"","md5":""}` on all of them. (The query IS
+     useful for the real CDN download URLs, which carry a build suffix like
+     `10.5.62-eekg9p6g25`.)
+   - `dl.ui.com` hosts no `.sha256`/`SHA256SUMS` sidecar files, on either the
+     plain or the suffixed path.
+   - `https://fw-update.ui.com/api/firmware-latest?filter=eq~~product~~unifi-controller`
+     publishes real per-platform SHA256s but is **stale** — it stopped updating
+     at 10.4.57 (checked 2026-07-13). Worth one retry on a future bump; drop
+     this note if it comes back to life.
+   - The RSS feed (what `scripts/release_notes.py` reads) carries notes only,
+     no checksums.
+
+   So: open the release page in a browser, expand the checksums section, and
+   copy the SHA256 for `unifi_sysvinit_all.deb` (in an AI-assisted session, the
+   maintainer pastes the checksum block into the chat). Then cross-check it by
+   hashing a fresh download (`curl -sL <url> | sha256sum` or download-and-hash);
+   published value and independent download agreeing is the confirmation the
+   Dockerfile pin rests on.
+
 2. **Check the UniFi release notes for dependency changes.** If they bump the
    Java requirement (like the 10.2.x move to Java 25), the Dockerfile needs
    updating too. Check the upstream repo's open PRs for hints.
