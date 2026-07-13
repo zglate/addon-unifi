@@ -1,5 +1,31 @@
 # Changelog
 
+## 20260713-01
+
+UniFi Network Application 10.5.62 includes the improvements and bugfixes listed below.
+
+**Improvements**
+
+- Added information to CyberSecure settings when Safe Mode is active.
+- Added an option to clear the Auto STP Edge assigned status in Port Manager port settings.
+- Improved SD-WAN Underlay resiliency.
+- Improved the Network Lists user experience and validation.
+- Improved RADIUS Server validation.
+- Improved application stability.
+
+**Bugfixes**
+
+- Fixed an issue where the STP column in Port Manager Time Machine did not reflect the correct state.
+- Fixed an issue where U-LTE adoption could trigger a gateway configuration error.
+- Fixed an issue where the Network Application could fail to start after upgrading to Network 10.5.57 on sites with a large number of Traffic Flows.
+  - Upgrading from Network 10.5 versions may take up to 30 minutes on sites with a large number of Traffic Flows.
+- Fixed an issue where the Test & Confirm feature appeared as available on devices that did not meet the UniFi OS 5.1 requirement.
+- Fixed an issue where traffic flow retention was not properly enforced.
+- Fixed an issue where Firewall Blocked and Policy-Based Routing system logs were not forwarded to remote SIEM servers.
+- Fixed an issue where console memory usage could continue to grow if downloading Traffic Flows was canceled before completion.
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-5-62/5068df72-8188-4778-909f-e3fa870b119a)
+
 ## 20260625-01
 
 UniFi Network Application 10.5.54 adds a 24-hour client activity timeline and a set of proactive network-protection and recovery features, along with a broad batch of improvements and bugfixes.
