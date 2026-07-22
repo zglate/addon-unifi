@@ -1,5 +1,22 @@
 # Changelog
 
+## 20260722-01
+
+UniFi Network Application 10.5.66 includes the improvements and bugfixes listed below.
+
+**Improvements**
+
+- Improved Auto STP Edge detection.
+- Improved Network Application stability.
+- Improved Control Plane protection detection stability.
+- Restored maximum download and upload speed indicators on the Dashboard.
+
+**Bugfixes**
+
+- Fixed a rare issue where the Network Application could fail to start after reverting to an older version.
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-5-66/9fd6a940-8f43-4071-a36a-28edcc7e5032)
+
 ## 20260713-01
 
 UniFi Network Application 10.5.62 includes the improvements and bugfixes listed below.
