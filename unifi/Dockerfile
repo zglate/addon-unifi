@@ -34,12 +34,12 @@ RUN \
         temurin-25-jre \
     \
     && curl -J -L -o /tmp/unifi.deb \
-        "https://dl.ui.com/unifi/10.5.66/unifi_sysvinit_all.deb" \
+        "https://dl.ui.com/unifi/10.5.67/unifi_sysvinit_all.deb" \
     \
     # Verify the package against Ubiquiti's published SHA256 for this release
-    # (community.ui.com release page for 10.5.66). The build fails loudly if the
+    # (community.ui.com release page for 10.5.67). The build fails loudly if the
     # download does not match, e.g. a tampered, MITM'd, or truncated artifact.
-    && echo "e77a09985f917f377b477fa204198ae805c0e4aa273f879098b1a8d3677bd732  /tmp/unifi.deb" \
+    && echo "ee3b99b95678be4e1d8b58e3826e8911531b12b32ee8bf1ea4b49fb7e76f9783  /tmp/unifi.deb" \
         | sha256sum --check \
     \
     && dpkg --install /tmp/unifi.deb \

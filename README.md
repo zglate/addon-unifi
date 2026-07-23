@@ -11,20 +11,7 @@ The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) or
 
 ## Current version
 
-**UniFi Network Application 10.5.66**
-
-> **Known issue on 10.5.66 - local web UI white-screens.** The local UniFi UI
-> (both the inline sidebar and a direct `https://<host>:8443/manage/`) goes
-> blank right after login. This is an upstream Ubiquiti packaging bug in the
-> 10.5.66 `unifi_sysvinit_all.deb`, not a fault of this fork: their app loader
-> requests a JavaScript bundle (`swai.b54a38110801728dad8d.js`) that Ubiquiti
-> never shipped in the package (the bundle actually included is
-> `swai.86265b3549db3c682ae7.js`), so it 404s and the UI never mounts. It hits
-> the stock self-hosted controller too. **Remote access through unifi.ui.com
-> still works** - the cloud portal loads its own UI against the controller's
-> API rather than the controller's broken local bundle. If you need the local
-> UI, roll back to 10.5.62. Reported to Ubiquiti; this note comes down when they
-> ship a fixed build.
+**UniFi Network Application 10.5.67**
 
 ## Installation
 

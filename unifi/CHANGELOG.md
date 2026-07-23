@@ -1,5 +1,17 @@
 # Changelog
 
+## 20260723-01
+
+UniFi Network Application 10.5.67 includes the improvements and bugfixes listed below.
+
+This release fixes the 10.5.66 local web UI white screen (the app loader referenced a `swai` bundle that was missing from the package; 10.5.67 ships a matching bundle again). The known-issue note is removed from the README.
+
+**Bugfixes**
+
+- Fixed an issue where the Network Server could fail to load when using a local connection.
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-5-67/375288b9-a4b4-46f1-a19d-5c787d342c2b)
+
 ## 20260722-01
 
 UniFi Network Application 10.5.66 includes the improvements and bugfixes listed below.
