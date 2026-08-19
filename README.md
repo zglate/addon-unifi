@@ -54,7 +54,22 @@ This fork uses a different repository URL, so Home Assistant treats it as a sepa
 7. Open the **new** addon's web UI (this fork)
 8. On the setup wizard, choose **Restore from a previous backup**
 9. Upload the `.unf` file
-10. Verify everything came over, then uninstall the old community addon
+10. Verify everything came over - check your sites, devices, and settings against the old addon.
+11. **Leave the old community addon installed but stopped, with "Start on boot" turned off.** Do not uninstall it yet.
+
+> **Run only one at a time, and keep the old addon as your safety net.** Both
+> addons listen on port 8443 and keep their own separate data, so only one may
+> run at once. While you run the Fast Track fork, keep the community addon
+> stopped with start-on-boot off (leaving start-on-boot on for both would
+> collide on 8443). That stopped addon is your rollback: this fork moves fast
+> and can occasionally ship a bad UniFi release (10.5.66, for example,
+> white-screened the local UI until 10.5.67 fixed it), so if a Fast Track build
+> misbehaves you can stop the fork, start the community addon, and be back on a
+> known-good build with your pre-migration data. Take your time verifying the
+> fork before you trust it. Only uninstall the community addon once you are
+> confident the Fast Track fork is working well for you. Its data is frozen at
+> migration time, so a fallback long after switching will be missing anything
+> changed since.
 
 **Note:** After migrating, you will need to re-enable Remote Access and re-authenticate your UI account in the UniFi settings.
 
