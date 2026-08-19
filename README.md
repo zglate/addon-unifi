@@ -60,11 +60,12 @@ This fork uses a different repository URL, so Home Assistant treats it as a sepa
 4. Click **Download** next to "Download Current Config Backup"
 5. The default is "Settings Only". If you want to keep your client/traffic statistics, change the dropdown to a time period (e.g., 365 days).
 6. Save the `.unf` file to your computer
-7. Open the **new** addon's web UI (this fork)
-8. On the setup wizard, choose **Restore from a previous backup**
-9. Upload the `.unf` file
-10. Verify everything came over - check your sites, devices, and settings against the old addon.
-11. **Leave the old community addon installed but stopped, with "Start on boot" turned off.** Do not uninstall it yet.
+7. **Stop the old addon and turn off its "Start on boot"** (old addon's **Info** tab). Leave it installed - do not uninstall it. This frees port 8443 for the fork and keeps the old addon as your rollback.
+8. Install this fork (if you haven't already), start it, and open its web UI
+9. On the setup wizard, choose **Restore from a previous backup**
+10. Upload the `.unf` file
+11. Verify everything came over - check your sites, devices, and settings against the old addon.
+12. **Keep the old community addon installed but stopped, with "Start on boot" off.** Do not uninstall it yet.
 
 > **Run only one at a time, and keep the old addon as your safety net.** Both
 > addons listen on port 8443 and keep their own separate data, so only one may
