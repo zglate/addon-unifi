@@ -9,6 +9,15 @@ The functional fixes (Java 25, TURN remote-access patch, UOS nag suppression) or
 
 **Use at your own risk.** I am not a professional developer. The community addon is the safer choice if you don't need the faster cadence.
 
+## Support and issues
+
+I'm genuinely keen to support this add-on and I want it to work well for you. Please keep two things in mind before you open an issue or ask for help:
+
+- **I'm not a developer and this isn't my full-time gig.** I maintain this fork in my spare time because I use it myself. There's no team behind it, no SLA, and no guaranteed response time, and some things I simply won't be able to fix. Please set your expectations accordingly.
+- **Be gentle, and be very clear.** A calm, specific, detailed report gets help far faster than a terse or frustrated one. Tell me your Home Assistant version, the add-on version, exactly what you did, what you expected, and what actually happened, and include the relevant lines from the add-on **Log** tab (plus a browser console or network capture if it's a UI problem). The more precise and patient you are, the more likely I can actually help.
+
+If you need guaranteed, professional support, the [community add-on](https://github.com/hassio-addons/addon-unifi) is the safer choice.
+
 ## Current version
 
 **UniFi Network Application 10.5.67**
