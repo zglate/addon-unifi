@@ -178,10 +178,13 @@ lives at the web root; the rewrites carry the live HA ingress prefix
 
 **The literals are content-based, so they survive the per-release bundle-hash
 filename renames.** They are NOT guaranteed to survive a UniFi version bump.
-The `init-unifi` run script greps for each one at startup and logs a warning if
-any is missing, that warning is the canary that the rewrites need updating.
+The `ingress-nginx` run script (the sidebar proxy's own startup) greps for each
+one at startup and logs a warning if any is missing, that warning is the canary
+that the rewrites need updating. The watched set is derived from
+`ingress-proxy.conf` itself (every `sub_filter` match string), so it can't drift
+out of sync with the actual rewrites.
 
-Current literals (must match `ingress-proxy.conf` and the `init-unifi` canary):
+Current literals (canary derives this set live from `ingress-proxy.conf`):
 
 | Where | Literal |
 |---|---|
@@ -189,6 +192,9 @@ Current literals (must match `ingress-proxy.conf` and the `init-unifi` canary):
 | angular `index.js` (chunk loader) | `BASE_HREF:"/manage/"` |
 | angular `index.js` (API + WS root) | `apiAdapter:new i.default("/")` |
 | `swai.*.js` (React Router basename) | `baseUrl="/manage/"` |
+| setup `index.html` (base href) | `<base href="/setup/"/>` |
+| setup `index.html` (link hrefs) | `href="/setup/` |
+| setup `index.html` (script srcs) | `src="/setup/` |
 | setup `main.js` (axios base) | `baseURL:"/",withCredentials` |
 | setup `main.js` (webpack publicPath) | `.p="/setup/"` |
 
