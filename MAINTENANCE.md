@@ -71,7 +71,12 @@ can pick this up without repeating the mistakes from the initial build.
         (This is separate from the WebRTC `md5sum --check` canary in step 3.)
    - `unifi/config.yaml` - change the `version` field (addon date version)
    - `unifi/CHANGELOG.md` - add a new version entry at the top
-   - `README.md` - update the "Current version" line to the new UniFi version
+   - `README.md` - update the "Current version" block: the UniFi version, the
+     "Released by Ubiquiti" date, and the "Packaged in this fork" date (+ the
+     addon build). The upstream date is the `<pubDate>` of the version's item in
+     the community RSS feed (`FEED_URL` in `scripts/release_notes.py`, fetched
+     with a `User-Agent` header — the bare feed path 400s behind Apollo CSRF).
+     The fork date is today's build date; note "(same day)" only when they match.
 
    All four must move together. The README version is user-facing and
    needs to match what actually ships.
