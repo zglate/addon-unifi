@@ -43,6 +43,12 @@ dismissable "browser is not supported" notice because it does not recognize the
 in-app browser; this is cosmetic and the interface works. See the addon
 Documentation tab for details and caveats.
 
+**First launch:** if the sidebar shows a blank/black screen right after install,
+open `https://<your-ip>:8443` directly in the same browser once and accept the
+self-signed certificate warning, then reload Home Assistant. The browser needs
+to trust the certificate before it will display the UniFi UI inside the sidebar.
+This is one-time per browser.
+
 **Known issue after an update:** for the first minute or two after the addon
 updates, the sidebar view may show a browser error (in Firefox, "another site
 has embedded this content"). While the controller is booting it serves a
