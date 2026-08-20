@@ -20,7 +20,7 @@ If you need guaranteed, professional support, the [community add-on](https://git
 
 ## Current version
 
-**UniFi Network Application 10.5.67**
+**UniFi Network Application 10.6.97**
 
 ## Installation
 

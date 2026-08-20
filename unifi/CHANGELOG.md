@@ -1,5 +1,31 @@
 # Changelog
 
+## 20260820-01
+
+UniFi Network Application 10.6.97 adds Drift Inspector, Topology Spotlight, and expanded Safe Ops features, along with the improvements and bug fixes listed below.
+
+**Added Drift Inspector to Blueprints in Site Manager**
+
+- Make local changes to sites using Blueprint orchestrations, with a clear view of configuration drift and an easy way to resolve it.
+
+**Added Topology Spotlight**
+
+- Quickly highlight and filter selected devices for easier navigation and troubleshooting in large topologies.
+
+**Improved SafeOps features**
+
+- Expanded Test & Confirm support to VPN and Management networks.
+- Added Nightly Channel AI Optimization with configurable radio selection and an improved optimization algorithm.
+
+**Improved Time Machine Experience**
+
+- Added Time Machine for Radios to review radio usage metrics, configuration changes, and radio events from the past 24 hours.
+- Expanded Port Manager Time Machine to All Ports, making it easier to identify and troubleshoot problematic network segments.
+
+_47 improvements and 13 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-6-97/ef8cd545-b479-4fac-bdc5-cabdd91692de)
+
 ## 20260723-01
 
 UniFi Network Application 10.5.67 includes the improvements and bugfixes listed below.
