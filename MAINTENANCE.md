@@ -76,7 +76,10 @@ can pick this up without repeating the mistakes from the initial build.
      addon build). The upstream date is the `<pubDate>` of the version's item in
      the community RSS feed (`FEED_URL` in `scripts/release_notes.py`, fetched
      with a `User-Agent` header — the bare feed path 400s behind Apollo CSRF).
-     The fork date is today's build date; note "(same day)" only when they match.
+     The fork date is today's build date. Show the lag from the upstream pubDate
+     to when you ship as the cadence flex — "~30 min later", "same day", "2 days
+     later" — computed from that RSS pubDate (GMT) to the GitHub release publish
+     time. Only claim a tight gap (minutes/hours) when the timestamps back it.
 
    All four must move together. The README version is user-facing and
    needs to match what actually ships.

@@ -23,7 +23,7 @@ If you need guaranteed, professional support, the [community add-on](https://git
 **UniFi Network Application 10.6.97**
 
 - Released by Ubiquiti: **Aug 20, 2026**
-- Packaged in this fork: **Aug 20, 2026** (same day) — addon build `20260820-01`
+- Packaged in this fork: **Aug 20, 2026, ~30 min later** — addon build `20260820-01`
 
 ## Installation
 
