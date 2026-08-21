@@ -234,6 +234,31 @@ strip `Origin`/`Referer` (UniFi CSRF guard rejects the proxied values), hide
 off` + re-prefix `Location` (keep redirects inside the ingress path), and the
 WebSocket `Upgrade`/`Connection` forwarding (live events).
 
+### Service lifecycle (finish + readiness)
+
+The `ingress-nginx` s6 service is deliberately shaped so the sidebar can never
+take the controller down, and never shows a spurious 502:
+
+- **Non-halting `finish`.** The sibling `unifi` service's `finish` runs
+  `exec /run/s6/basedir/bin/halt` on failure, because the UniFi app on 8443 is
+  the reason the addon exists. `ingress-nginx/finish` deliberately does the
+  opposite: it logs a warning and returns, so s6 restarts nginx. A dead sidebar
+  proxy must never halt the container and take 8443 with it. Do not copy the
+  `unifi` finish here. (A SIGTERM during normal shutdown, exit 256 + signal 15,
+  is the one quiet path.)
+- **Readiness probe before `exec nginx`.** The `run` script waits (bounded,
+  ~300 x 1s) for `https://127.0.0.1:8443` to answer before starting nginx, so
+  the sidebar serves the app (or its boot splash) instead of a 502 while UniFi
+  is still coming up. It is a probe, NOT a dependency on the `unifi` service:
+  `unifi` is an s6 longrun with no `notification-fd`, so s6 marks it "up" the
+  instant the Java process is exec'd, not when 8443 is listening. Depending on it
+  would not wait for readiness, the probe does. It is bounded on purpose, if
+  UniFi is genuinely down nginx starts anyway and the 502 is the honest signal
+  rather than a hang.
+
+Both behaviours are also carried on the upstream ingress PR (#648). Keep the
+service files here and the PR branch in sync.
+
 ### Cookie trim (the mobile companion app "400 Bad Request" fix)
 
 UniFi's embedded Jetty rejects any request whose total headers exceed 8 KB with
@@ -529,6 +554,37 @@ Both workflows are self-contained. No external workflow dependencies.
 | `frenck/action-addon-information` | `deploy.yaml` | Third-party Action; pinned to v1.4.2 |
 | GitHub Actions runners | Both workflows | aarch64 builds use `ubuntu-24.04-arm` |
 | `libubnt_webrtc_jni.so` | Patched in `unifi/Dockerfile` at build time | md5 check fails the build if Ubiquiti ships a new library |
+
+## Dependency automation (Renovate)
+
+Renovate is enabled on this fork (config: `.github/renovate.json`, adapted from
+upstream's). It watches the dependencies in the table above and opens PRs to
+update them. What it does, and the standing policy for each:
+
+- **GitHub Action digests** are pinned to commit SHAs with a `# vN` comment
+  (`helpers:pinGitHubActionDigests`). A moving tag like `@v4` can be re-pointed;
+  a SHA can't. Renovate keeps the SHA current and bumps the comment. Both
+  workflows are fully pinned, do not reintroduce bare `@vN` tags.
+- **Base image (`ghcr.io/hassio-addons/ubuntu-base`) minor/patch** auto-merges.
+  These are same-Ubuntu rebuilds and are safe.
+- **Base image major** (e.g. 8.x -> 11) does NOT auto-merge, and the standing
+  decision is to **decline it**. A major is a base-OS jump: the apt packages in
+  `unifi/Dockerfile` are pinned to *focal* (20.04) versions (`gpg=2.2.19-...`,
+  `mongodb-server=...`, `nginx-extras=1.18.0-...`), and the deb registry URLs in
+  `renovate.json` point at focal, so a newer Ubuntu breaks the build on the first
+  pinned install (`E: Version '...' for 'gpg' was not found`). Upstream declines
+  it too (they closed their own v11 PR, #659, and stay on 8.2.1). Taking it is a
+  deliberate migration: re-pin every apt package for the new release, re-verify
+  MongoDB/nginx/Java availability, and update the deb registry URLs. Close the
+  PR, Renovate will not re-open a manually-closed major until an even newer one
+  appears.
+- **apt package pins** are tracked via a `deb` datasource against the Ubuntu
+  focal archives.
+
+The **"Dependency Dashboard" issue** Renovate opens is a status board, not a
+task. Renovate replaced Dependabot (the old `.github/dependabot.yaml` was
+removed). For Renovate PR CI, don't trust `gh run list` (see below), check
+`gh api .../actions/runs` for ground truth.
 
 ## How HA discovers updates
 
