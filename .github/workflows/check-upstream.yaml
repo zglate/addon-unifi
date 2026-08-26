@@ -2,7 +2,15 @@ name: Check for new UniFi releases
 
 on:
   schedule:
-    - cron: '0 20 * * *'  # daily at 12:00 PT (20:00 UTC, past Ubiquiti's release window)
+    # Ubiquiti GA releases cluster on weekday afternoons UTC (~13:00-22:00,
+    # business hours Pacific), so poll every 30 min across that window and once
+    # daily otherwise. Minutes are free on a public repo and the job is
+    # idempotent (dedupes on the open issue), so frequency only trades RSS
+    # politeness for latency. Off-:00 minutes deliberately dodge GitHub's
+    # congested top-of-hour cron queue, which delays scheduled runs by minutes
+    # to hours (the old '0 20' cron routinely fired 2h+ late).
+    - cron: '17,47 13-22 * * 1-5'  # every 30 min, weekday release window
+    - cron: '17 8 * * *'           # daily safety net outside the window
   workflow_dispatch:
 
 permissions:
