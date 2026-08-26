@@ -581,10 +581,19 @@ update them. What it does, and the standing policy for each:
 - **apt package pins** are tracked via a `deb` datasource against the Ubuntu
   focal archives.
 
-The **"Dependency Dashboard" issue** Renovate opens is a status board, not a
-task. Renovate replaced Dependabot (the old `.github/dependabot.yaml` was
-removed). For Renovate PR CI, don't trust `gh run list` (see below), check
-`gh api .../actions/runs` for ground truth.
+The **"Dependency Dashboard" issue** Renovate opens (e.g. #12) is a status
+board, not a task: it stays open **indefinitely by design**, is updated in
+place, and must NOT be closed (Renovate just reopens it) or read as a release
+blocker. The release-close step above scopes to `--label new-upstream-version`,
+so the dashboard never appears in that list — an unrelated open issue is
+expected, not something the release missed. (Don't add a generic "check for open
+issues" step to the release flow; it would invite closing the dashboard.) The
+dashboard's checkboxes (recreate a closed major PR, force a re-run) are opt-in
+actions — leave them unchecked unless you specifically want that action; a
+manually-closed major like the `ubuntu-base` v11 bump (PR #13) is *supposed* to
+stay closed per the base-image-major policy above. Renovate replaced Dependabot
+(the old `.github/dependabot.yaml` was removed). For Renovate PR CI, don't trust
+`gh run list` (see below), check `gh api .../actions/runs` for ground truth.
 
 ## How HA discovers updates
 
