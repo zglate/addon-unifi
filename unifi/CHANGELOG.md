@@ -1,5 +1,22 @@
 # Changelog
 
+## 20260826-01
+
+UniFi Network Application 10.6.101 includes the improvements and bug fixes listed below.
+
+**Improvements**
+
+- Improved Network Application stability.
+- Removed the Network Override option for WAN-adopted U5G devices.
+
+**Bugfixes**
+
+- Fixed a rare issue where adopting an LTE device could cause a gateway configuration error.
+
+_2 improvements and 1 bugfix; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-6-101/05283624-0980-4dd7-b8d6-9fa5c4e28da4)
+
 ## 20260820-01
 
 UniFi Network Application 10.6.97 adds Drift Inspector, Topology Spotlight, and expanded Safe Ops features, along with the improvements and bug fixes listed below.
