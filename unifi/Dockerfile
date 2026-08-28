@@ -37,9 +37,9 @@ RUN \
         "https://dl.ui.com/unifi/10.6.101/unifi_sysvinit_all.deb" \
     \
     # Verify the package against Ubiquiti's published SHA256 for this release
-    # (community.ui.com release page for 10.5.67). The build fails loudly if the
+    # (community.ui.com release page for 10.6.101). The build fails loudly if the
     # download does not match, e.g. a tampered, MITM'd, or truncated artifact.
-    && echo "ee3b99b95678be4e1d8b58e3826e8911531b12b32ee8bf1ea4b49fb7e76f9783  /tmp/unifi.deb" \
+    && echo "b5ab809c2680b7ec22106ef19c7942f1fa343338c3eed1829303d95b2ce4fdd7  /tmp/unifi.deb" \
         | sha256sum --check \
     \
     && dpkg --install /tmp/unifi.deb \
