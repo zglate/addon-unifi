@@ -32,22 +32,36 @@ jobs:
 
       - name: Check latest release from RSS
         id: latest
+        env:
+          INSTALLED: ${{ steps.installed.outputs.version }}
         run: |
           FEED_URL="https://community.ui.com/rss/releases/UniFi-Network-Controller/e6712595-81bb-4829-8e42-9e2630fabcfe"
           # Ubiquiti's server rejects curl's default UA, so spoof a browser UA.
           # Titles are wrapped in <![CDATA[...]]>, so match inside that.
+          # Take the highest version in the feed, not the newest post: Ubiquiti
+          # also posts maintenance releases for older lines (e.g. 9.0.120 above
+          # 10.6.101), and feed order put those at the top.
           LATEST=$(curl -sL -A "Mozilla/5.0" "${FEED_URL}" \
             | grep -oP 'UniFi Network Application \K[0-9]+\.[0-9]+\.[0-9]+' \
-            | head -1)
+            | sort -uV | tail -1)
           if [ -z "${LATEST}" ]; then
             echo "Failed to parse RSS feed" >&2
             exit 1
           fi
+          # Strictly newer than installed, not merely different — protects
+          # against the feed aging out the installed version's entry.
+          if [ "${LATEST}" != "${INSTALLED}" ] && \
+             [ "$(printf '%s\n%s\n' "${INSTALLED}" "${LATEST}" | sort -V | tail -1)" = "${LATEST}" ]; then
+            NEWER=true
+          else
+            NEWER=false
+          fi
           echo "version=${LATEST}" >> $GITHUB_OUTPUT
-          echo "Latest: ${LATEST}"
+          echo "newer=${NEWER}" >> $GITHUB_OUTPUT
+          echo "Latest: ${LATEST} (newer than ${INSTALLED}: ${NEWER})"
 
       - name: Verify download URL exists
-        if: steps.latest.outputs.version != steps.installed.outputs.version
+        if: steps.latest.outputs.newer == 'true'
         run: |
           URL="https://dl.ui.com/unifi/${{ steps.latest.outputs.version }}/unifi_sysvinit_all.deb"
           CODE=$(curl -sI -o /dev/null -w "%{http_code}" "${URL}")
@@ -57,7 +71,7 @@ jobs:
           fi
 
       - name: Generate release-notes summary
-        if: steps.latest.outputs.version != steps.installed.outputs.version
+        if: steps.latest.outputs.newer == 'true'
         id: notes
         env:
           LATEST: ${{ steps.latest.outputs.version }}
@@ -71,7 +85,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Open issue if new version available
-        if: steps.latest.outputs.version != steps.installed.outputs.version
+        if: steps.latest.outputs.newer == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           CURRENT: ${{ steps.installed.outputs.version }}
