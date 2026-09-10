@@ -1,5 +1,28 @@
 # Changelog
 
+## 20260910-01
+
+UniFi Network Application 10.6.106 includes the improvements and bug fixes listed below.
+
+**Improvements**
+
+- Added MLO STR Mesh support for WiFi 7 Access Points (requires UAP 8.8 or newer).
+- Improved Application stability.
+- Improved Observability resiliency.
+
+**Bugfixes**
+
+- Fixed a rare issue where WiFi clients using MLO could display an incorrect IP address.
+- Fixed an issue where WiFi Broadcast could fail on UDR7 and UDR-5G when using MLO STR.
+- Fixed inaccurate Port Lock events in Port Manager Time Machine.
+- Fixed an issue where Site Admins could fail to open Settings in multi-site deployments.
+- Fixed a rare issue where network configuration changes could fail to save.
+- Fixed a rare issue where the Client Session widget was not displayed in the Client panel.
+
+_4 improvements and 6 bugfixes; see release notes for the full list._
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-6-106/f206c01d-3f73-471b-b4a5-2da48f157ea6)
+
 ## 20260826-01
 
 UniFi Network Application 10.6.101 includes the improvements and bug fixes listed below.
