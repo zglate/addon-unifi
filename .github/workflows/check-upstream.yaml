@@ -41,13 +41,26 @@ jobs:
           # Take the highest version in the feed, not the newest post: Ubiquiti
           # also posts maintenance releases for older lines (e.g. 9.0.120 above
           # 10.6.101), and feed order put those at the top.
-          LATEST=$(curl -sL -A "Mozilla/5.0" "${FEED_URL}" \
+          # Only consider the installed major line (10.x today). UniFi 11.0.83
+          # (2026-10-12) removed Network Application Server support in favour of
+          # UniFi OS Server, so no self-hosted .deb is published for 11.x and
+          # the download check 404s forever. 10.x maintenance releases still
+          # matter; newer majors are logged and ignored.
+          MAJOR="${INSTALLED%%.*}"
+          ALL=$(curl -sL -A "Mozilla/5.0" "${FEED_URL}" \
             | grep -oP 'UniFi Network Application \K[0-9]+\.[0-9]+\.[0-9]+' \
-            | sort -uV | tail -1)
-          if [ -z "${LATEST}" ]; then
+            | sort -uV)
+          if [ -z "${ALL}" ]; then
             echo "Failed to parse RSS feed" >&2
             exit 1
           fi
+          LATEST=$(printf '%s\n' "${ALL}" | grep "^${MAJOR}\." | tail -1)
+          if [ -z "${LATEST}" ]; then
+            echo "No ${MAJOR}.x release in feed (feed has: $(printf '%s' "${ALL}" | tr '\n' ' '))" >&2
+            exit 1
+          fi
+          NEWER_MAJOR=$(printf '%s\n' "${ALL}" | awk -F. -v m="${MAJOR}" '$1 > m' | tr '\n' ' ')
+          [ -n "${NEWER_MAJOR}" ] && echo "Ignoring newer major line(s): ${NEWER_MAJOR}(no self-hosted .deb)"
           # Strictly newer than installed, not merely different — protects
           # against the feed aging out the installed version's entry.
           if [ "${LATEST}" != "${INSTALLED}" ] && \
