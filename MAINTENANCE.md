@@ -583,7 +583,8 @@ update them. What it does, and the standing policy for each:
   deliberate migration: re-pin every apt package for the new release, re-verify
   MongoDB/nginx/Java availability, and update the deb registry URLs. Close the
   PR, Renovate will not re-open a manually-closed major until an even newer one
-  appears. Why it stays declined (10.6 is the last self-hosted UniFi line, and a
+  appears. Why it stays declined (10.6 is the last standalone UniFi Network Application line; 11.x runs only
+  on UniFi OS, and a
   move forces a MongoDB data migration that Raspberry Pi 4 users can't take),
   the accepted unpatched focal CVEs and why they're contained, and what would
   reopen the decision: `BASE-IMAGE.md`.

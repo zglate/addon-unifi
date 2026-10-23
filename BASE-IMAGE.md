@@ -12,8 +12,10 @@ checked").
 **Stay on `ubuntu-base:8.x` (focal) for the life of the 10.6 line.** The reason
 is no longer "nothing forces a move", it is that the move no longer pays off:
 
-- **10.6 is the last self-hosted UniFi Network line.** UniFi 11.0.83
-  (2026-10-12) migrated the database to PostgreSQL and "Removed Network
+- **10.6 is the last standalone UniFi Network Application line.** 11.x is
+  still named "UniFi Network Application" but runs only on UniFi OS (consoles,
+  or UniFi OS Server for self-hosting): 11.0.83 (2026-10-12) "requires UniFi OS
+  6.0 or newer", migrated the database to PostgreSQL, and "Removed Network
   Application Server support. Upgrade to UniFi OS Server." No
   `unifi_sysvinit_all.deb` exists for 11.x (dl.ui.com 404s for 11.0.83 and
   11.0.97). `check-upstream.yaml` already tracks only the 10.x line for this
