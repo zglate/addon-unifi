@@ -181,13 +181,11 @@ Fonts (handled in -08, kept in -09). Two separate situations, do not conflate th
 
 ### 6. nginx base bump: replace the Secure-strip Lua with proxy_cookie_flags (future)
 
-- Status: open, separate project. Not blocking; the Lua works.
-- Today the add-on builds FROM ghcr.io/hassio-addons/ubuntu-base:8.2.0, which is
-  Ubuntu 20.04 focal and ships only nginx 1.18 (no proxy_cookie_flags). Focal
-  left standard support in April 2025 (now ESM), so this bump is coming anyway.
-- When the base moves to an image with nginx >= 1.19.3 (newer ubuntu-base on
-  jammy/noble, or an Alpine base like the nginx-proxy-manager / tasmoadmin
-  add-ons now use, nginx 1.24/1.26), do this:
+- Status: deferred indefinitely (2026-10-23). The base stays on focal for the
+  life of the 10.6 line; the reasoning, current per-release nginx/MongoDB
+  versions, and what would reopen it live in BASE-IMAGE.md (the single place to
+  keep those facts current). Not blocking; the Lua works.
+- If the base ever moves to an image with nginx >= 1.19.3, do this:
   - In ingress-proxy.conf, delete the `header_filter_by_lua_block` and add
     `proxy_cookie_flags ~ nosecure;` (the idiomatic one-liner; item 5's behavior).
     If SameSite=None still needs downgrading, `proxy_cookie_flags` does not do
@@ -195,11 +193,9 @@ Fonts (handled in -08, kept in -09). Two separate situations, do not conflate th
   - In nginx.conf, drop the two `load_module` lines (ndk + lua).
   - In the Dockerfile, switch `nginx-extras` back to a smaller variant (Lua no
     longer needed); `nginx-full` (or the Alpine `nginx`) provides http_sub_module.
-- This is a FULL OS migration, not an nginx swap: every pinned apt package moves
-  at once (mongodb-server 3.6 may not exist on noble; temurin, libcap, binutils,
-  logrotate), and the WebRTC .so patch offsets + md5 canary and Java/Mongo
-  compatibility all need re-validation. Do it deliberately with its own test
-  pass, not bundled into an unrelated fix. Device-validate sign-in (iPhone +
+- This is a FULL OS migration, not an nginx swap (see BASE-IMAGE.md "What else
+  would move with the base" and the MongoDB data-migration section). Do it
+  deliberately with its own test pass, not bundled into an unrelated fix. Device-validate sign-in (iPhone +
   Firefox over plain-HTTP LAN) before claiming the loop stays fixed.
 
 ## Confirmed correct (no action needed)

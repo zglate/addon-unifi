@@ -14,41 +14,39 @@ can pick this up without repeating the mistakes from the initial build.
    If it doesn't return 200, the version isn't available yet.
 
    While you're here, **record the release's published SHA256** for
-   `unifi_sysvinit_all.deb` from the community.ui.com release page (Downloads /
-   checksums section) — you paste it into the Dockerfile in step 4. Do NOT compute
-   it from your own download; the whole point is to verify against Ubiquiti's
-   published value, not a hash of whatever you happened to fetch.
+   `unifi_sysvinit_all.deb` — you paste it into the Dockerfile in step 4. Do NOT
+   take it only from your own download; the point is to verify against
+   Ubiquiti's published value, not a hash of whatever you happened to fetch.
 
-   **Getting the published SHA256 requires a human in a real browser.** Every
-   automated path was tried on 2026-07-13 and fails — don't re-spend a session
-   rediscovering this:
+   **Primary source: Ubiquiti's firmware API.** It publishes real per-platform
+   SHA256s; the `debian` entry is the same file as `unifi_sysvinit_all.deb`
+   (identical size and hash, checked on 10.6.109). Upstream's Renovate and the
+   linuxserver image both read this API.
 
-   - The release page is a JS SPA; curl/WebFetch get an empty "Loading Ubiquiti
-     Community" shell. The checksums render client-side only.
-   - The public GraphQL API behind the page (`POST https://community.svc.ui.com/`
-     with `content-type: application/json`) works for metadata and even has the
-     field — but it's **empty for every release**, old and new:
-     ```
-     {"query":"query { release(id: \"<UUID-from-the-release-URL>\") { version links { url checksums { sha256 md5 } } } }"}
-     ```
-     returns `"checksums":{"sha256":"","md5":""}` on all of them. (The query IS
-     useful for the real CDN download URLs, which carry a build suffix like
-     `10.5.62-eekg9p6g25`.)
-   - `dl.ui.com` hosts no `.sha256`/`SHA256SUMS` sidecar files, on either the
-     plain or the suffixed path.
-   - `https://fw-update.ui.com/api/firmware-latest?filter=eq~~product~~unifi-controller`
-     publishes real per-platform SHA256s but is **stale** — it stopped updating
-     at 10.4.57 (checked 2026-07-13). Worth one retry on a future bump; drop
-     this note if it comes back to life.
-   - The RSS feed (what `scripts/release_notes.py` reads) carries notes only,
-     no checksums.
+   ```
+   curl -s 'https://fw-update.ui.com/api/firmware-latest?filter=eq~~product~~unifi-controller' \
+     | .venv/Scripts/python.exe -I -c "import sys,json; [print(f['platform'], f['version'], f['sha256_checksum']) for f in json.load(sys.stdin)['_embedded']['firmware'] if f['platform']=='debian']"
+   ```
 
-   So: open the release page in a browser, expand the checksums section, and
-   copy the SHA256 for `unifi_sysvinit_all.deb` (in an AI-assisted session, the
-   maintainer pastes the checksum block into the chat). Then cross-check it by
-   hashing a fresh download (`curl -sL <url> | sha256sum` or download-and-hash);
-   published value and independent download agreeing is the confirmation the
+   Then **cross-check** by hashing a fresh download
+   (`curl -sL https://dl.ui.com/unifi/<VERSION>/unifi_sysvinit_all.deb | sha256sum`).
+   Published value and independent download agreeing is the confirmation the
    Dockerfile pin rests on.
+
+   This API can lag the release by hours to days (it looked dead from 10.4.57
+   to mid-2026, then resumed). **If the new version isn't there yet, fall back
+   to a human in a real browser:** open the community.ui.com release page,
+   expand the checksums section, copy the SHA256 for `unifi_sysvinit_all.deb`
+   (in an AI-assisted session, the maintainer pastes it into the chat), and
+   cross-check the same way. Paths that do NOT work, so don't re-try them:
+
+   - The release page is a JS SPA; curl/WebFetch get an empty shell.
+   - The GraphQL API behind it (`POST https://community.svc.ui.com/`) has a
+     `checksums` field that is empty for every release. (It IS useful for the
+     real CDN download URLs, which carry a build suffix like
+     `10.5.62-eekg9p6g25`.)
+   - `dl.ui.com` hosts no `.sha256`/`SHA256SUMS` sidecar files.
+   - The RSS feed (what `scripts/release_notes.py` reads) carries notes only.
 
 2. **Check the UniFi release notes for dependency changes.** If they bump the
    Java requirement (like the 10.2.x move to Java 25), the Dockerfile needs
@@ -84,35 +82,43 @@ can pick this up without repeating the mistakes from the initial build.
    All four must move together. The README version is user-facing and
    needs to match what actually ships.
 
-5. **Commit both in a single commit.** Message format: `UniFi <version>`
-
-6. **Push to main.**
-
-7. **Generate the changelog entry** for `unifi/CHANGELOG.md` from upstream's release notes, then create a GitHub release.
+   **The CHANGELOG entry** comes from upstream's release notes:
 
    ```
    .venv/Scripts/python.exe scripts/release_notes.py <UNIFI_VERSION>
    ```
 
-   That prints a markdown summary (Overview features, counts of improvements/bugfixes, link to full notes). Paste it into `unifi/CHANGELOG.md` under a new `## <ADDON_VERSION>` heading and commit.
+   It prints a summary (Overview features, improvement/bugfix counts, link to
+   full notes); the same text is in the `new-upstream-version` issue. Put it
+   under a new `## <ADDON_VERSION>` heading. For small releases the summary
+   omits the actual items (10.6.109 came out as "_1 improvement_" with no
+   bullet), so write the entry by hand in the usual shape (intro line,
+   **Improvements** / **Bugfixes** bullets, full-notes link) from the full
+   notes.
 
-   The same script runs in `check-upstream.yaml` and embeds the same summary in the GitHub issue you got notified with — copying from the issue is equivalent.
+5. **Commit all four files in a single commit.** Message format: `UniFi <version>`
 
-   Then create the release. **Tag = addon version, title = "UniFi <unifi-version>"**:
+6. **Push to main.** HA Supervisor reads `config.yaml` from main, so from this
+   moment users are offered the new version and get a 404 until the deploy
+   finishes. Go straight to step 7.
+
+7. **Create the release.** **Tag = addon version, title =
+   "<ADDON_VERSION> (UniFi <UNIFI_VERSION>)"**. Use the REST API (see "GitHub
+   authentication" below for why not `gh release create`), and pin
+   `target_commitish` to the bump commit's SHA rather than `main`, so a Renovate
+   auto-merge landing in between can't slip into the release:
 
    ```
-   gh release create v<ADDON_VERSION> \
-     --title "<ADDON_VERSION> (UniFi <UNIFI_VERSION>)" \
-     --notes "<what changed>"
+   gh api repos/zglate/addon-unifi/releases -X POST \
+     -f tag_name=v<ADDON_VERSION> -f target_commitish=$(git rev-parse HEAD) \
+     -f name="<ADDON_VERSION> (UniFi <UNIFI_VERSION>)" -f body="<what changed>"
    ```
-
-   Example: `gh release create v20260518-01 --title "20260518-01 (UniFi 10.4.57)" ...`
 
 8. **Wait for the release event to trigger the deploy workflow.**
 
-   `gh release create` publishes the release, which fires the
-   `release: published` event that auto-triggers `deploy.yaml`. Confirm
-   with `gh run list --workflow=deploy.yaml --limit 1`.
+   Publishing the release fires the `release: published` event that
+   auto-triggers `deploy.yaml`. Confirm with the runs API (see "Checking CI/CD
+   status" below), not `gh run list`.
 
    Do NOT also run `gh workflow run deploy.yaml -f version=<VERSION>`.
    That fires a second simultaneous deploy and the two builds race to
@@ -577,7 +583,10 @@ update them. What it does, and the standing policy for each:
   deliberate migration: re-pin every apt package for the new release, re-verify
   MongoDB/nginx/Java availability, and update the deb registry URLs. Close the
   PR, Renovate will not re-open a manually-closed major until an even newer one
-  appears.
+  appears. Why it stays declined (10.6 is the last self-hosted UniFi line, and a
+  move forces a MongoDB data migration that Raspberry Pi 4 users can't take),
+  the accepted unpatched focal CVEs and why they're contained, and what would
+  reopen the decision: `BASE-IMAGE.md`.
 - **apt package pins** are tracked via a `deb` datasource against the Ubuntu
   focal archives.
 
@@ -628,6 +637,15 @@ gh auth login -h github.com -w -s repo,workflow,read:packages,write:packages
 - More than one account may be logged in to `gh`. Confirm the fork account
   (`zglate`) is active (`gh auth status` shows "Active account: true"). Never
   operate this fork under any other logged-in account.
+- **Check the active account before ANY GitHub action, not only pushes and
+  releases**: comments, closing PRs/issues, labels, and `gh api` writes all act
+  as whichever account is active. The active account persists between sessions
+  and can be changed by unrelated work, so check at the start of each session and
+  again before the first GitHub action. (2026-09-13: a PR close was run under a
+  different logged-in account; `gh pr close --comment` posted the comment publicly
+  under that account before the close was refused. Deleting it afterward does not
+  undo the exposure.) A local, untracked pre-command hook enforces this on the
+  maintainer's machine.
 
 ### Commit identity is separate from the gh account — set it per repo
 
