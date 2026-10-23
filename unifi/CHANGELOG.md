@@ -1,5 +1,15 @@
 # Changelog
 
+## 20261023-01
+
+UniFi Network Application 10.6.109 includes the improvement listed below.
+
+**Improvements**
+
+- Revoked compromised eMudhra CA certificates.
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-6-109/772020d5-1426-4015-bbd6-631d28803933)
+
 ## 20260910-01
 
 UniFi Network Application 10.6.106 includes the improvements and bug fixes listed below.

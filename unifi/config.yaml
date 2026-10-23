@@ -1,6 +1,6 @@
 ---
 name: UniFi Network Application (Fast Track)
-version: "20260910-01"
+version: "20261023-01"
 slug: unifi
 description: Manage your UniFi network using a web browser
 url: https://github.com/zglate/addon-unifi
