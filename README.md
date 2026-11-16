@@ -20,10 +20,10 @@ If you need guaranteed, professional support, the [community add-on](https://git
 
 ## Current version
 
-**UniFi Network Application 10.6.109**
+**UniFi Network Application 10.6.111** (Release Candidate)
 
-- Released by Ubiquiti: **Oct 23, 2026**
-- Packaged in this fork: **Oct 23, 2026, same day** — addon build `20261023-01`
+- Released by Ubiquiti: **Nov 13, 2026**
+- Packaged in this fork: **Nov 15, 2026, 2 days later** — addon build `20261115-01`
 
 ## Installation
 

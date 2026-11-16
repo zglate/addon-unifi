@@ -1,5 +1,15 @@
 # Changelog
 
+## 20261115-01
+
+UniFi Network Application 10.6.111 (Release Candidate) includes the bug fix listed below.
+
+**Bugfixes**
+
+- Fixed an issue that prevented restoring backups from versions 9.0.120 and 9.0.122.
+
+[Full release notes](https://community.ui.com/releases/UniFi-Network-Application-10-6-111/9559b5b4-7939-4f22-8c58-934c7ed624ef)
+
 ## 20261023-01
 
 UniFi Network Application 10.6.109 includes the improvement listed below.
